@@ -1,4 +1,4 @@
-http_proxy.go
+mallory
 =============
 
 Yet another http proxy written in golang, including direct and GAE fetcher
@@ -13,14 +13,14 @@ Status
 Installation
 =============
 ```sh
-go get github.com/justmao945/http_proxy.go
+go get github.com/justmao945/mallory
 ```
 
 Direct Engine Usage
 =============
 ```sh
 # this is the default mode
-http_proxy.go
+mallory
 2014/04/12 01:56:33 Listen and serve on 127.0.0.1:18087
 2014/04/12 01:56:33 	Engine: direct
 ```
@@ -29,7 +29,7 @@ GAE Engine Usage
 =============
 ```sh
 # before start the proxy server, we'd better upload the GAE remote application
-cd http_proxy.go/
+cd mallory/
 
 # put your own app id into app.yaml
 vim gae/app.yaml
@@ -38,7 +38,7 @@ vim gae/app.yaml
 goapp deploy gae/
 
 # this mode need to use the fake CA, default include mallory.crt and mallory.key
-http_proxy.go -engine=gae -appspot=your_app_id -cert=path/to/cert.crt -key=path/to/key.key
+mallory -engine=gae -appspot=your_app_id -cert=path/to/cert.crt -key=path/to/key.key
 
 # or generate the private key and sign the Root CA by yourself
 openssl genrsa -out mallory.key 2048
