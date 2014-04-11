@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/justmao945/http_proxy.go/mallory"
+	"github.com/justmao945/mallory/mallory"
 	"log"
 	"net/http"
 )
