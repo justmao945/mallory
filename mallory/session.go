@@ -3,6 +3,8 @@ package mallory
 import (
 	"log"
 	"net/http"
+	"path"
+	"runtime"
 )
 
 // A session is a proxy request
@@ -31,5 +33,6 @@ func (self *Session) Info(format string, args ...interface{}) {
 }
 
 func (self *Session) Error(format string, args ...interface{}) {
-	self.printf("ERRO: "+format, args...)
+	_, file, line, _ := runtime.Caller(1)
+	self.printf("ERRO: %s:%d:"+format, append([]interface{}{path.Base(file), line}, args...)...)
 }

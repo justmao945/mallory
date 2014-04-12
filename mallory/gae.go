@@ -52,7 +52,7 @@ func (self *EngineGAE) Serve(s *Session) {
 	// Note: WriteProxy keeps the full request URI
 	var buf bytes.Buffer
 	if err := r.WriteProxy(&buf); err != nil {
-		s.Error("http.Request.WriteProxy: %s", err.Error())
+		s.Error("WriteProxy: %s", err.Error())
 		return
 	}
 
@@ -67,14 +67,14 @@ func (self *EngineGAE) Serve(s *Session) {
 	// post client request as body data
 	resp, err := http.Post(url, "application/data", &buf)
 	if err != nil {
-		s.Error("http.Post: %s", err.Error())
+		s.Error("Post: %s", err.Error())
 		return
 	}
 
 	// the response for the requst of client
 	cres, err := http.ReadResponse(bufio.NewReader(resp.Body), r)
 	if err != nil {
-		s.Error("http.ReadResponse: %s", err.Error())
+		s.Error("ReadResponse: %s", err.Error())
 		return
 	}
 
@@ -86,14 +86,14 @@ func (self *EngineGAE) Serve(s *Session) {
 
 	_, err = io.Copy(w, cres.Body)
 	if err != nil {
-		s.Error("io.Copy: %s", err.Error())
+		s.Error("Copy: %s", err.Error())
 		return
 	}
 
 	// Must close body after read the response body
 	// Note that cres.Body is rely on resp.Body, so do not close before reading
 	if err := resp.Body.Close(); err != nil {
-		s.Error("http.Response.Body.Close: %s", err.Error())
+		s.Error("Close: %s", err.Error())
 		return
 	}
 
@@ -131,7 +131,7 @@ func (self *EngineGAE) Connect(s *Session) {
 	// Only support HTTPS protocol, which is connected with port 443
 	host, port, err := net.SplitHostPort(r.URL.Host)
 	if err != nil {
-		s.Error("net.SplitHostPort: %s", err.Error())
+		s.Error("SplitHostPort: %s", err.Error())
 		return
 	}
 
@@ -150,7 +150,7 @@ func (self *EngineGAE) Connect(s *Session) {
 	conn, _, err := hij.Hijack()
 	defer conn.Close()
 	if err != nil {
-		s.Error("http.Hijacker.Hijack: %s", err.Error())
+		s.Error("Hijack: %s", err.Error())
 		return
 	}
 
@@ -158,7 +158,7 @@ func (self *EngineGAE) Connect(s *Session) {
 	rconn, err := net.Dial("tcp", self.Env.Addr)
 	defer rconn.Close()
 	if err != nil {
-		s.Error("net.Dial: %s", err.Error())
+		s.Error("Dial: %s", err.Error())
 		return
 	}
 
@@ -166,18 +166,10 @@ func (self *EngineGAE) Connect(s *Session) {
 	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 	// get the fake cert, every host should have its own cert
-	cert := self.Certs.GetSafe(host)
-	if cert == nil {
-		config := &CertConfig{
-			SerialNumber: s.ID,
-			CommonName:   host, // FIXME: common name mismatch
-		}
-		cert, err = CreateSignedCert(self.RootCA, config)
-		if err != nil {
-			s.Error("EngineGAE.CreateSignedCert: %s", err.Error())
-			return
-		}
-		self.Certs.AddSafe(host, cert)
+	cert, err := self.GetCert(s, host)
+	if err != nil {
+		s.Error("GetCert: %s", err.Error())
+		return
 	}
 
 	// assume the protocol of client connection is HTTPS
@@ -193,14 +185,14 @@ func (self *EngineGAE) Connect(s *Session) {
 	if err := sconn.Handshake(); err != nil {
 		// re-open browser to recover the handshake error:
 		//    remote error: bad certificate
-		s.Error("tls.Server.Handshake: %s", err.Error())
+		s.Error("Handshake: %s", err.Error())
 		return
 	}
 
 	// finally, we are at application layer, http request comes
 	req, err := http.ReadRequest(bufio.NewReader(sconn))
 	if err != nil {
-		s.Error("http.ReadRequest: %s", err.Error())
+		s.Error("ReadRequest: %s", err.Error())
 		return
 	}
 
@@ -210,16 +202,29 @@ func (self *EngineGAE) Connect(s *Session) {
 	// Now re-write the client request to self, HTTP handler
 	err = req.WriteProxy(rconn)
 	if err != nil {
-		s.Error("http.Request.WriteProxy: %s", err.Error())
+		s.Error("WriteProxy: %s", err.Error())
 		return
 	}
 
 	// copy response
 	_, err = io.Copy(sconn, rconn)
 	if err != nil {
-		s.Error("io.Copy: %s", err.Error())
+		s.Error("Copy: %s", err.Error())
 		return
 	}
 
 	s.Info("CLOSE %s", r.URL.Host)
+}
+
+func (self *EngineGAE) GetCert(s *Session, host string) (cert *tls.Certificate, err error) {
+	cert = self.Certs.GetSafe(host)
+	if cert == nil {
+		config := &CertConfig{
+			SerialNumber: s.ID,
+			CommonName:   host, // FIXME: common name mismatch
+		}
+		cert, err = CreateSignedCert(self.RootCA, config)
+		self.Certs.AddSafe(host, cert)
+	}
+	return
 }

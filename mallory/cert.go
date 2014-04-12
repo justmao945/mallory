@@ -18,12 +18,7 @@ type CertConfig struct {
 // root is a certificate loaded from external
 // return a new certificate signed by the root CA and the root CA chain
 func CreateSignedCert(root *tls.Certificate, config *CertConfig) (cert *tls.Certificate, err error) {
-	bits := root.PrivateKey.(*rsa.PrivateKey).N.BitLen()
-	key, err := rsa.GenerateKey(rand.Reader, bits)
-	if err != nil {
-		return
-	}
-
+	// the first one is the signer
 	signer, err := x509.ParseCertificate(root.Certificate[0])
 	if err != nil {
 		return
@@ -40,16 +35,19 @@ func CreateSignedCert(root *tls.Certificate, config *CertConfig) (cert *tls.Cert
 		BasicConstraintsValid: true,
 	}
 
+	// the key section, keep the common name same as the host name client want to connect
 	signee.Subject.CommonName = config.CommonName
 
-	crtder, err := x509.CreateCertificate(rand.Reader, signee, signer, &key.PublicKey, root.PrivateKey)
+	// here use the root public key as the signee's to generate certificate
+	priv := root.PrivateKey.(*rsa.PrivateKey)
+	crtder, err := x509.CreateCertificate(rand.Reader, signee, signer, &priv.PublicKey, root.PrivateKey)
 	if err != nil {
 		return
 	}
 
 	cert = &tls.Certificate{
 		Certificate: [][]byte{crtder, root.Certificate[0]},
-		PrivateKey:  key,
+		PrivateKey:  priv,
 	}
 	return
 }

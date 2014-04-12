@@ -33,7 +33,7 @@ func (self *EngineDirect) Serve(s *Session) {
 	// The underlying RoundTrip never changes anything of the request.
 	resp, err := http.DefaultTransport.RoundTrip(r)
 	if err != nil {
-		s.Error("http.DefaultTransport.RoundTrip: %s", err.Error())
+		s.Error("RoundTrip: %s", err.Error())
 		return
 	}
 
@@ -45,13 +45,13 @@ func (self *EngineDirect) Serve(s *Session) {
 
 	_, err = io.Copy(w, resp.Body)
 	if err != nil {
-		s.Error("io.Copy: %s", err.Error())
+		s.Error("Copy: %s", err.Error())
 		return
 	}
 
 	// Must close body after read the response body
 	if err := resp.Body.Close(); err != nil {
-		s.Error("http.Response.Body.Close: %s", err.Error())
+		s.Error("Close: %s", err.Error())
 		return
 	}
 	s.Info("RESPONSE %s %s", r.URL.Host, resp.Status)
@@ -78,7 +78,7 @@ func (self *EngineDirect) Connect(s *Session) {
 	src, _, err := hij.Hijack()
 	defer src.Close()
 	if err != nil {
-		s.Error("http.Hijacker.Hijack: %s", err.Error())
+		s.Error("Hijack: %s", err.Error())
 		return
 	}
 
@@ -86,7 +86,7 @@ func (self *EngineDirect) Connect(s *Session) {
 	dst, err := net.Dial("tcp", r.URL.Host)
 	defer dst.Close()
 	if err != nil {
-		s.Error("net.Dial: %s", err.Error())
+		s.Error("Dial: %s", err.Error())
 		return
 	}
 
@@ -101,7 +101,7 @@ func (self *EngineDirect) Connect(s *Session) {
 	copyAndWait := func(w io.Writer, r io.Reader) {
 		_, err := io.Copy(w, r)
 		if err != nil {
-			s.Error("io.Copy: %s", err.Error())
+			s.Error("Copy: %s", err.Error())
 		}
 		wg.Done()
 	}
