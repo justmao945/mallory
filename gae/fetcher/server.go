@@ -26,7 +26,7 @@ func HandleHTTP(w http.ResponseWriter, r *http.Request) {
 	// read client requst
 	creq, err := http.ReadRequest(bufio.NewReader(r.Body))
 	if err != nil {
-		s.HTTPError("http.ReadRequest: %s", err.Error())
+		s.HTTPError("ReadRequest: %s", err.Error())
 		return
 	}
 
@@ -34,18 +34,18 @@ func HandleHTTP(w http.ResponseWriter, r *http.Request) {
 	// in fact RoundTrip supports both http and https
 	resp, err := cli.Transport.RoundTrip(creq)
 	if err != nil {
-		s.HTTPError("urlfetch.Client.Transport.RoundTrip: %s", err.Error())
+		s.HTTPError("RoundTrip: %s", err.Error())
 		return
 	}
 
 	// write response and send to client
 	if err := resp.Write(w); err != nil {
-		s.HTTPError("http.Response.Write: %s", err.Error())
+		s.HTTPError("Write: %s", err.Error())
 		return
 	}
 
 	if err := resp.Body.Close(); err != nil {
-		s.HTTPError("http.Response.Body.Close: %s", err.Error())
+		s.HTTPError("Close: %s", err.Error())
 		return
 	}
 }

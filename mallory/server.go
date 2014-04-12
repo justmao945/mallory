@@ -2,6 +2,7 @@ package mallory
 
 import (
 	"net/http"
+	"os"
 	"sync/atomic"
 )
 
@@ -23,6 +24,8 @@ type Engineer interface {
 }
 
 type Server struct {
+	// Env
+	Env *Env
 	// used to generate unique ID for sessions
 	IDZygote int64
 	// different fetch engine can be adapted to the server
@@ -31,6 +34,7 @@ type Server struct {
 
 func NewServer(e *Env) *Server {
 	srv := &Server{}
+	srv.Env = e
 	srv.Engine = NewEngineDirect(e)
 	if e.Engine == "gae" {
 		srv.Engine = NewEngineGAE(e)
@@ -39,6 +43,10 @@ func NewServer(e *Env) *Server {
 }
 
 func (self *Server) Init() error {
+	err := os.MkdirAll(self.Env.Work, 0755)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
 	return self.Engine.Init()
 }
 

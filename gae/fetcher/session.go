@@ -4,6 +4,8 @@ import (
 	"appengine"
 	"fmt"
 	"net/http"
+	"path"
+	"runtime"
 )
 
 type Session struct {
@@ -19,7 +21,8 @@ func NewSession(ctx appengine.Context, w http.ResponseWriter) *Session {
 }
 
 func (self *Session) HTTPError(format string, args ...interface{}) {
-	s := fmt.Sprintf(format, args...)
+	_, file, line, _ := runtime.Caller(1)
+	s := fmt.Sprintf("%s:%d: "+format, append([]interface{}{path.Base(file), line}, args...)...)
 	self.Ctx.Errorf(s + "\n")
 	http.Error(self.Writer, s, http.StatusInternalServerError)
 }

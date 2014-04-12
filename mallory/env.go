@@ -3,6 +3,7 @@ package mallory
 import (
 	"errors"
 	"flag"
+	"os"
 )
 
 // Provide global config for mallory
@@ -43,5 +44,11 @@ func (self *Env) Parse() error {
 	if self.Engine != "gae" && self.Engine != "direct" {
 		return errors.New(`engine should be "direct" or "gae"`)
 	}
+
+	// expand env vars for paths
+	self.Work = os.ExpandEnv(self.Work)
+	self.Key = os.ExpandEnv(self.Key)
+	self.Cert = os.ExpandEnv(self.Cert)
+
 	return nil
 }

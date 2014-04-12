@@ -4,17 +4,24 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/tls"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 )
 
 // all write on this should be sync between threads
 type EngineGAE struct {
 	// Global config
 	Env *Env
+	// work space for this engine
+	Work string
+	// place store certificates
+	CertsDir string
 	// Loaded certificate, contains the root certificate and private key
 	RootCA *tls.Certificate
 	// Pool of auto generated fake certificates signed by RootCert
@@ -22,17 +29,25 @@ type EngineGAE struct {
 }
 
 func NewEngineGAE(e *Env) *EngineGAE {
-	return &EngineGAE{Env: e}
+	self := &EngineGAE{Env: e}
+	self.Work = path.Join(self.Env.Work, "gae")
+	self.CertsDir = path.Join(self.Work, "certs")
+	self.Certs = NewCertPool()
+	return self
 }
 
-func (self *EngineGAE) Init() (err error) {
+func (self *EngineGAE) Init() error {
+	err := os.MkdirAll(self.CertsDir, 0755)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+
 	rcert, err := tls.LoadX509KeyPair(self.Env.Cert, self.Env.Key)
 	if err != nil {
-		return
+		return err
 	}
 	self.RootCA = &rcert
-	self.Certs = NewCertPool()
-	return
+	return nil
 }
 
 // 1. Receive client request R1
@@ -112,7 +127,7 @@ func (self *EngineGAE) Serve(s *Session) {
 // GAE can only handle limited protocols with urlfetch module, such as http and https.
 // Use Hijacker to get the underlying connection
 //
-// 1. Detect host and port, currectly only support 443 HTTPS request
+// 1. Detect host and port
 // 2. Hijack the client connection
 // 3. Dial self
 // 4. Return 200 OK if is successfully
@@ -217,14 +232,50 @@ func (self *EngineGAE) Connect(s *Session) {
 }
 
 func (self *EngineGAE) GetCert(s *Session, host string) (cert *tls.Certificate, err error) {
+	// firstly, try to find in memory
 	cert = self.Certs.GetSafe(host)
-	if cert == nil {
-		config := &CertConfig{
-			SerialNumber: s.ID,
-			CommonName:   host, // FIXME: common name mismatch
-		}
-		cert, err = CreateSignedCert(self.RootCA, config)
+	if cert != nil {
+		return
+	}
+
+	// secondly, try to find on disk
+	crtnam := path.Join(self.CertsDir, host+".crt")
+	// we use the same key with CA
+	crt, err := tls.LoadX509KeyPair(crtnam, self.Env.Key)
+	if err == nil {
+		cert = &crt
 		self.Certs.AddSafe(host, cert)
+		return
+	} else if !os.IsNotExist(err) {
+		s.Warn("LoadX509KeyPair: %s", err.Error())
+	}
+
+	// finally, try to create a new cert
+	config := &CertConfig{
+		SerialNumber: s.ID,
+		CommonName:   host, // FIXME: common name mismatch
+	}
+	cert, err = CreateSignedCert(self.RootCA, config)
+	if err == nil {
+		// add to memory
+		self.Certs.AddSafe(host, cert)
+		// save cert, fail is accepted
+		fcrt, _err := os.Create(crtnam)
+		if _err == nil {
+			for _, c := range cert.Certificate {
+				_err = pem.Encode(fcrt, &pem.Block{Type: "CERTIFICATE", Bytes: c})
+				if _err != nil {
+					break
+				}
+			}
+			fcrt.Close()
+			if _err != nil {
+				s.Warn("Encode: %s", _err.Error())
+				os.Remove(crtnam)
+			}
+		} else {
+			s.Warn("Create %s", _err.Error())
+		}
 	}
 	return
 }

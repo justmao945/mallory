@@ -28,11 +28,19 @@ func (self *Session) printf(format string, args ...interface{}) {
 	log.Printf("[%03d] "+format+"\n", append([]interface{}{self.ID}, args...)...)
 }
 
+func (self *Session) printatf(ty, format string, args ...interface{}) {
+	_, file, line, _ := runtime.Caller(1)
+	self.printf(ty+"%s:%d:"+format, append([]interface{}{path.Base(file), line}, args...)...)
+}
+
 func (self *Session) Info(format string, args ...interface{}) {
 	self.printf("INFO: "+format, args...)
 }
 
+func (self *Session) Warn(format string, args ...interface{}) {
+	self.printatf("WARN: ", format, args...)
+}
+
 func (self *Session) Error(format string, args ...interface{}) {
-	_, file, line, _ := runtime.Caller(1)
-	self.printf("ERRO: %s:%d:"+format, append([]interface{}{path.Base(file), line}, args...)...)
+	self.printatf("ERRO: ", format, args...)
 }
