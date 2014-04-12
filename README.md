@@ -47,7 +47,9 @@ openssl req -new -x509 -days 365 -key mollory.key -out mallory.crt
 
 TODO
 =============
-* Optimization response speed
+* Optimize response time
+* Fix still can not work well on some https sites
+* Add test
 * Add appspot IP resolver
 * Add pac server and config
 * ....
