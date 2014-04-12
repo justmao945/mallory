@@ -37,6 +37,7 @@ func (self *EngineDirect) Serve(s *Session) {
 		s.Error("RoundTrip: %s", err.Error())
 		return
 	}
+	defer resp.Body.Close()
 
 	// copy headers
 	CopyResponseHeader(w, resp)
@@ -50,11 +51,6 @@ func (self *EngineDirect) Serve(s *Session) {
 		return
 	}
 
-	// Must close body after read the response body
-	if err := resp.Body.Close(); err != nil {
-		s.Error("Close: %s", err.Error())
-		return
-	}
 	s.Info("RESPONSE %s %s", r.URL.Host, resp.Status)
 }
 
@@ -78,19 +74,19 @@ func (self *EngineDirect) Connect(s *Session) {
 	}
 
 	src, _, err := hij.Hijack()
-	defer src.Close()
 	if err != nil {
 		s.Error("Hijack: %s", err.Error())
 		return
 	}
+	defer src.Close()
 
 	// connect the remote client directly
 	dst, err := net.Dial("tcp", r.URL.Host)
-	defer dst.Close()
 	if err != nil {
 		s.Error("Dial: %s", err.Error())
 		return
 	}
+	defer dst.Close()
 
 	// Once connected successfully, return OK
 	src.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))

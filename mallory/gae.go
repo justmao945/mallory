@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strconv"
 )
 
 // all write on this should be sync between threads
@@ -86,6 +87,12 @@ func (self *EngineGAE) Serve(s *Session) {
 		s.Error("Post: %s", err.Error())
 		return
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusInternalServerError {
+		s.Error("Post: %s", resp.Status)
+		return
+	}
 
 	// the response for the requst of client
 	cres, err := http.ReadResponse(bufio.NewReader(resp.Body), r)
@@ -103,13 +110,6 @@ func (self *EngineGAE) Serve(s *Session) {
 	_, err = io.Copy(w, cres.Body)
 	if err != nil {
 		s.Error("Copy: %s", err.Error())
-		return
-	}
-
-	// Must close body after read the response body
-	// Note that cres.Body is rely on resp.Body, so do not close before reading
-	if err := resp.Body.Close(); err != nil {
-		s.Error("Close: %s", err.Error())
 		return
 	}
 
@@ -166,19 +166,19 @@ func (self *EngineGAE) Connect(s *Session) {
 	}
 
 	conn, _, err := hij.Hijack()
-	defer conn.Close()
 	if err != nil {
 		s.Error("Hijack: %s", err.Error())
 		return
 	}
+	defer conn.Close()
 
 	// dial self to transport application data, http request
 	rconn, err := net.Dial("tcp", self.Env.Addr)
-	defer rconn.Close()
 	if err != nil {
 		s.Error("Dial: %s", err.Error())
 		return
 	}
+	defer rconn.Close()
 
 	// Once connected successfully, return OK
 	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
@@ -215,7 +215,8 @@ func (self *EngineGAE) Connect(s *Session) {
 	}
 
 	// should re-wrap the URL with scheme "https://"
-	req.URL, err = url.Parse("https://" + r.Host + req.URL.String())
+	req.URL, err = url.Parse("https://" + host + req.URL.String())
+	req.Header.Set("Mallory-Session", strconv.FormatInt(s.ID, 10))
 
 	// Now re-write the client request to self, HTTP handler
 	err = req.WriteProxy(rconn)

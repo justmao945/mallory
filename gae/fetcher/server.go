@@ -37,15 +37,11 @@ func HandleHTTP(w http.ResponseWriter, r *http.Request) {
 		s.HTTPError("RoundTrip: %s", err.Error())
 		return
 	}
+	defer resp.Body.Close()
 
 	// write response and send to client
 	if err := resp.Write(w); err != nil {
 		s.HTTPError("Write: %s", err.Error())
-		return
-	}
-
-	if err := resp.Body.Close(); err != nil {
-		s.HTTPError("Close: %s", err.Error())
 		return
 	}
 }

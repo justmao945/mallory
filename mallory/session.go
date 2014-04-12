@@ -32,7 +32,7 @@ func (self *Session) printf(format string, args ...interface{}) {
 }
 
 func (self *Session) printatf(ty, format string, args ...interface{}) {
-	_, file, line, ok := runtime.Caller(1)
+	_, file, line, ok := runtime.Caller(2)
 	if !ok {
 		file = "???"
 		line = 0

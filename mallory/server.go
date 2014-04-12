@@ -3,6 +3,7 @@ package mallory
 import (
 	"net/http"
 	"os"
+	"strconv"
 	"sync/atomic"
 )
 
@@ -74,7 +75,10 @@ func (self *Server) Init() error {
 //    to the remote server and copy the reponse to client.
 //
 func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	sid := atomic.AddInt64(&self.IDZygote, 1)
+	sid, err := strconv.ParseInt(r.Header.Get("Mallory-Session"), 0, 64)
+	if err != nil {
+		sid = atomic.AddInt64(&self.IDZygote, 1)
+	}
 	s := NewSession(self.Env, sid, w, r)
 
 	s.Info("%s %s %s", r.Method, r.URL.Host, r.Proto)
