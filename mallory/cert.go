@@ -11,7 +11,7 @@ import (
 
 // simple config used to create signed certificate
 type CertConfig struct {
-	SerialNumber int64
+	SerialNumber *big.Int
 	CommonName   string
 }
 
@@ -25,7 +25,7 @@ func CreateSignedCert(root *tls.Certificate, config *CertConfig) (cert *tls.Cert
 	}
 
 	signee := &x509.Certificate{
-		SerialNumber:          new(big.Int).SetInt64(config.SerialNumber),
+		SerialNumber:          config.SerialNumber,
 		Issuer:                signer.Issuer,
 		Subject:               signer.Subject,
 		NotBefore:             signer.NotBefore,

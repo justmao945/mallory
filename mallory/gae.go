@@ -3,10 +3,12 @@ package mallory
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha1"
 	"crypto/tls"
 	"encoding/pem"
 	"fmt"
 	"io"
+	"math/big"
 	"net"
 	"net/http"
 	"net/url"
@@ -255,8 +257,9 @@ func (self *EngineGAE) GetCert(s *Session, host string) (cert *tls.Certificate, 
 	}
 
 	// finally, try to create a new cert
+	sn := sha1.Sum([]byte(host))
 	config := &CertConfig{
-		SerialNumber: s.ID,
+		SerialNumber: new(big.Int).SetBytes(sn[:]),
 		CommonName:   host, // FIXME: common name mismatch
 	}
 	cert, err = CreateSignedCert(self.RootCA, config)
