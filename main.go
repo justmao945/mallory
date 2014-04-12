@@ -9,7 +9,7 @@ import (
 func main() {
 	var env mallory.Env
 	if err := env.Parse(); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	log.Printf("Listen and serve on %s\n", env.Addr)
@@ -20,7 +20,7 @@ func main() {
 
 	srv := mallory.NewServer(&env)
 	if err := srv.Init(); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	log.Fatal(http.ListenAndServe(env.Addr, srv))
 }

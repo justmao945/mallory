@@ -11,13 +11,19 @@ import (
 type Session struct {
 	Ctx    appengine.Context
 	Writer http.ResponseWriter
+	ReqID  string
 }
 
 func NewSession(ctx appengine.Context, w http.ResponseWriter) *Session {
 	return &Session{
 		Ctx:    ctx,
 		Writer: w,
+		ReqID:  appengine.RequestID(ctx)[:9], // Note: may not be unique...
 	}
+}
+
+func (self *Session) Info(format string, args ...interface{}) {
+	self.Ctx.Infof("[%s] "+format, append([]interface{}{self.ReqID}, args...)...)
 }
 
 func (self *Session) HTTPError(format string, args ...interface{}) {
@@ -26,7 +32,7 @@ func (self *Session) HTTPError(format string, args ...interface{}) {
 		file = "???"
 		line = 0
 	}
-	s := fmt.Sprintf("%s:%d: "+format, append([]interface{}{path.Base(file), line}, args...)...)
+	s := fmt.Sprintf("[%s] %s:%d: "+format, append([]interface{}{self.ReqID, path.Base(file), line}, args...)...)
 	self.Ctx.Errorf(s + "\n")
 	http.Error(self.Writer, s, http.StatusInternalServerError)
 }
