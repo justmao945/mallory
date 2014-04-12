@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 )
 
 // all write on this should be sync between threads
@@ -66,6 +67,7 @@ func (self *EngineGAE) Serve(s *Session) {
 		s.Error("this function can not handle CONNECT method")
 		return
 	}
+	start := time.Now()
 
 	// write the client request and post to remote
 	// Note: WriteProxy keeps the full request URI
@@ -102,6 +104,7 @@ func (self *EngineGAE) Serve(s *Session) {
 		s.Error("ReadResponse: %s", err.Error())
 		return
 	}
+	defer cres.Body.Close()
 
 	// copy headers
 	CopyResponseHeader(w, cres)
@@ -115,7 +118,7 @@ func (self *EngineGAE) Serve(s *Session) {
 		return
 	}
 
-	s.Info("RESPONSE %s %s", r.URL.Host, resp.Status)
+	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, time.Since(start).String())
 }
 
 // FIXME:
@@ -147,6 +150,7 @@ func (self *EngineGAE) Connect(s *Session) {
 		s.Error("this function can only handle CONNECT method")
 		return
 	}
+	start := time.Now()
 
 	// Only support HTTPS protocol, which is connected with port 443
 	host, port, err := net.SplitHostPort(r.URL.Host)
@@ -227,14 +231,28 @@ func (self *EngineGAE) Connect(s *Session) {
 		return
 	}
 
-	// copy response
-	_, err = io.Copy(sconn, rconn)
+	cresp, err := http.ReadResponse(bufio.NewReader(rconn), req)
 	if err != nil {
-		s.Error("Copy: %s", err.Error())
+		s.Error("ReadResponse: %s", err.Error())
+		return
+	}
+	defer cresp.Body.Close()
+
+	err = cresp.Write(sconn)
+	if err != nil {
+		s.Error("Write: %s", err.Error())
 		return
 	}
 
-	s.Info("CLOSE %s", r.URL.Host)
+	// FIXME: io.Copy will not return, find out why
+	// copy response
+	//_, err = io.Copy(sconn, rconn)
+	//if err != nil {
+	//	s.Error("Copy: %s", err.Error())
+	//	return
+	//}
+
+	s.Info("CLOSE %s %s", r.URL.Host, time.Since(start).String())
 }
 
 func (self *EngineGAE) GetCert(s *Session, host string) (cert *tls.Certificate, err error) {

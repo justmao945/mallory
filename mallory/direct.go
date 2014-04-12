@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"time"
 )
 
 type EngineDirect struct{}
@@ -28,6 +29,7 @@ func (self *EngineDirect) Serve(s *Session) {
 		s.Error("this function can not handle CONNECT method")
 		return
 	}
+	start := time.Now()
 
 	// Client.Do is different from DefaultTransport.RoundTrip ...
 	// Client.Do will change some part of request as a new request of the server.
@@ -51,7 +53,7 @@ func (self *EngineDirect) Serve(s *Session) {
 		return
 	}
 
-	s.Info("RESPONSE %s %s", r.URL.Host, resp.Status)
+	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, time.Since(start).String())
 }
 
 // Data flow:
@@ -65,6 +67,7 @@ func (self *EngineDirect) Connect(s *Session) {
 		s.Error("this function can only handle CONNECT method")
 		return
 	}
+	start := time.Now()
 
 	// Use Hijacker to get the underlying connection
 	hij, ok := w.(http.Hijacker)
@@ -111,5 +114,5 @@ func (self *EngineDirect) Connect(s *Session) {
 	// EOF and are done!
 	wg.Wait()
 
-	s.Info("CLOSE %s", r.URL.Host)
+	s.Info("CLOSE %s %s", r.URL.Host, time.Since(start).String())
 }
