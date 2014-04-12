@@ -24,7 +24,7 @@ type Engineer interface {
 }
 
 type Server struct {
-	// Env
+	// Global config
 	Env *Env
 	// used to generate unique ID for sessions
 	IDZygote int64
@@ -75,7 +75,7 @@ func (self *Server) Init() error {
 //
 func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	sid := atomic.AddInt64(&self.IDZygote, 1)
-	s := NewSession(sid, w, r)
+	s := NewSession(self.Env, sid, w, r)
 
 	s.Info("%s %s %s", r.Method, r.URL.Host, r.Proto)
 

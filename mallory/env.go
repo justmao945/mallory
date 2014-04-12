@@ -6,6 +6,14 @@ import (
 	"os"
 )
 
+const (
+	CO_RED    = "\033[0;31;49m"
+	CO_GREEN  = "\033[0;32;49m"
+	CO_YELLOW = "\033[0;33;49m"
+	CO_BLUE   = "\033[0;34;49m"
+	CO_RESET  = "\033[0m"
+)
+
 // Provide global config for mallory
 type Env struct {
 	// work space, default is $HOME/.mallory
@@ -28,6 +36,8 @@ type Env struct {
 	//      openssl req -new -x509 -days 365 -key mollory.key -out mallory.crt
 	Key  string // mallory.key
 	Cert string // mallory.crt
+	// terminal helper, test the default logger(os.Stderr) is terminal or not
+	Istty bool
 }
 
 func (self *Env) Parse() error {
@@ -50,5 +60,6 @@ func (self *Env) Parse() error {
 	self.Key = os.ExpandEnv(self.Key)
 	self.Cert = os.ExpandEnv(self.Cert)
 
+	self.Istty = Isatty(os.Stderr)
 	return nil
 }

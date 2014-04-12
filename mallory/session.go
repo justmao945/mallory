@@ -9,6 +9,8 @@ import (
 
 // A session is a proxy request
 type Session struct {
+	// Global config
+	Env *Env
 	// the unique ID start from 1
 	ID int64
 	// Copy from the http handler
@@ -16,8 +18,9 @@ type Session struct {
 	Request        *http.Request
 }
 
-func NewSession(id int64, w http.ResponseWriter, r *http.Request) *Session {
+func NewSession(e *Env, id int64, w http.ResponseWriter, r *http.Request) *Session {
 	return &Session{
+		Env:            e,
 		ID:             id,
 		ResponseWriter: w,
 		Request:        r,
@@ -29,7 +32,11 @@ func (self *Session) printf(format string, args ...interface{}) {
 }
 
 func (self *Session) printatf(ty, format string, args ...interface{}) {
-	_, file, line, _ := runtime.Caller(1)
+	_, file, line, ok := runtime.Caller(1)
+	if !ok {
+		file = "???"
+		line = 0
+	}
 	self.printf(ty+"%s:%d:"+format, append([]interface{}{path.Base(file), line}, args...)...)
 }
 
@@ -38,9 +45,17 @@ func (self *Session) Info(format string, args ...interface{}) {
 }
 
 func (self *Session) Warn(format string, args ...interface{}) {
-	self.printatf("WARN: ", format, args...)
+	if self.Env.Istty {
+		self.printatf(CO_YELLOW+"WARN: ", format+CO_RESET, args...)
+	} else {
+		self.printatf("WARN: ", format, args...)
+	}
 }
 
 func (self *Session) Error(format string, args ...interface{}) {
-	self.printatf("ERRO: ", format, args...)
+	if self.Env.Istty {
+		self.printatf(CO_RED+"ERRO: ", format+CO_RESET, args...)
+	} else {
+		self.printatf("ERRO: ", format, args...)
+	}
 }
