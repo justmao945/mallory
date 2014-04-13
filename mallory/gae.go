@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -214,43 +215,61 @@ func (self *EngineGAE) Connect(s *Session) {
 	}
 
 	// finally, we are at application layer, http request comes
-	req, err := http.ReadRequest(bufio.NewReader(sconn))
-	if err != nil {
-		s.Error("ReadRequest: %s", err.Error())
-		return
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	// should re-wrap the URL with scheme "https://"
-	req.URL, err = url.Parse("https://" + host + req.URL.String())
-	req.Header.Set("Mallory-Session", strconv.FormatInt(s.ID, 10))
+	// read all requests, tls connection reues?
+	go func() {
+		for {
+			req, err := http.ReadRequest(bufio.NewReader(sconn))
+			if err != nil {
+				if err != io.EOF {
+					s.Error("ReadRequest: %s", err.Error())
+				}
+				break
+			}
 
-	// Now re-write the client request to self, HTTP handler
-	err = req.WriteProxy(rconn)
-	if err != nil {
-		s.Error("WriteProxy: %s", err.Error())
-		return
-	}
+			// should re-wrap the URL with scheme "https://"
+			req.URL, err = url.Parse("https://" + host + req.URL.String())
+			req.Header.Set("Mallory-Session", strconv.FormatInt(s.ID, 10))
 
-	cresp, err := http.ReadResponse(bufio.NewReader(rconn), req)
-	if err != nil {
-		s.Error("ReadResponse: %s", err.Error())
-		return
-	}
-	defer cresp.Body.Close()
+			// Now re-write the client request to self, HTTP handler
+			err = req.WriteProxy(rconn)
+			if err != nil {
+				s.Error("WriteProxy: %s", err.Error())
+				break
+			}
+		}
+		wg.Done()
+	}()
 
-	err = cresp.Write(sconn)
-	if err != nil {
-		s.Error("Write: %s", err.Error())
-		return
-	}
+	// write back all responses
+	go func() {
+		for {
+			// FIXME: how to get the right request instead of nil?
+			cresp, err := http.ReadResponse(bufio.NewReader(rconn), nil)
+			if err != nil {
+				if err != io.EOF {
+					s.Error("ReadResponse: %s", err.Error())
+				}
+				break
+			}
+			defer cresp.Body.Close()
 
-	// FIXME: io.Copy will not return, find out why
-	// copy response
-	//_, err = io.Copy(sconn, rconn)
-	//if err != nil {
-	//	s.Error("Copy: %s", err.Error())
-	//	return
-	//}
+			err = cresp.Write(sconn)
+			if err != nil {
+				// FIXME: write EOF? what does this mean?
+				if err != io.EOF {
+					s.Error("Write: %s", err.Error())
+				}
+				break
+			}
+		}
+		wg.Done()
+	}()
+
+	// Keep connection until no data received from both client and server
+	wg.Wait()
 
 	s.Info("CLOSE %s %s", r.URL.Host, time.Since(start).String())
 }
