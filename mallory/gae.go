@@ -239,6 +239,11 @@ func (self *EngineGAE) Connect(s *Session) {
 				s.Error("WriteProxy: %s", err.Error())
 				break
 			}
+
+			// close the persistent connection after reply the requset
+			if req.Close {
+				break
+			}
 		}
 		wg.Done()
 	}()
@@ -262,6 +267,11 @@ func (self *EngineGAE) Connect(s *Session) {
 				if err != io.EOF {
 					s.Error("Write: %s", err.Error())
 				}
+				break
+			}
+
+			// close the persistent connection after reply the requset
+			if cresp.Close {
 				break
 			}
 		}
