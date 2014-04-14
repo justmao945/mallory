@@ -15,7 +15,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -122,7 +121,6 @@ func (self *EngineGAE) Serve(s *Session) {
 	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, time.Since(start).String())
 }
 
-// FIXME:
 //  Impossible to connect gae and handle it as a normal TCP connection?
 //  GAE only provide http handlers? At least I don't know how to handle to TCP connection on GAE server.
 //  NOTE: GAE socket service can only be available for billing users. So free users is unable to use the
@@ -215,71 +213,44 @@ func (self *EngineGAE) Connect(s *Session) {
 	}
 
 	// finally, we are at application layer, http request comes
-	var wg sync.WaitGroup
-	wg.Add(2)
-
 	// read all requests, tls connection reues?
-	go func() {
-		for {
-			req, err := http.ReadRequest(bufio.NewReader(sconn))
-			if err != nil {
-				if err != io.EOF {
-					s.Error("ReadRequest: %s", err.Error())
-				}
-				break
-			}
-
-			// should re-wrap the URL with scheme "https://"
-			req.URL, err = url.Parse("https://" + host + req.URL.String())
-			req.Header.Set("Mallory-Session", strconv.FormatInt(s.ID, 10))
-
-			// Now re-write the client request to self, HTTP handler
-			err = req.WriteProxy(rconn)
-			if err != nil {
-				s.Error("WriteProxy: %s", err.Error())
-				break
-			}
-
-			// close the persistent connection after reply the requset
-			if req.Close {
-				break
-			}
+	for {
+		creq, err := http.ReadRequest(bufio.NewReader(sconn))
+		if err != nil {
+			s.Error("ReadRequest: %s", err.Error())
+			break
 		}
-		wg.Done()
-	}()
 
-	// write back all responses
-	go func() {
-		for {
-			// FIXME: how to get the right request instead of nil?
-			cresp, err := http.ReadResponse(bufio.NewReader(rconn), nil)
-			if err != nil {
-				if err != io.EOF {
-					s.Error("ReadResponse: %s", err.Error())
-				}
-				break
-			}
-			defer cresp.Body.Close()
+		// should re-wrap the URL with scheme "https://"
+		creq.URL, err = url.Parse("https://" + host + creq.URL.String())
+		creq.Header.Set("Mallory-Session", strconv.FormatInt(s.ID, 10))
 
-			err = cresp.Write(sconn)
-			if err != nil {
-				// FIXME: write EOF? what does this mean?
-				if err != io.EOF {
-					s.Error("Write: %s", err.Error())
-				}
-				break
-			}
-
-			// close the persistent connection after reply the requset
-			if cresp.Close {
-				break
-			}
+		// Now re-write the client request to self, HTTP handler
+		err = creq.WriteProxy(rconn)
+		if err != nil {
+			s.Error("WriteProxy: %s", err.Error())
+			break
 		}
-		wg.Done()
-	}()
 
-	// Keep connection until no data received from both client and server
-	wg.Wait()
+		// write back all responses
+		cresp, err := http.ReadResponse(bufio.NewReader(rconn), creq)
+		if err != nil {
+			s.Error("ReadResponse: %s", err.Error())
+			break
+		}
+		defer cresp.Body.Close()
+
+		err = cresp.Write(sconn)
+		if err != nil {
+			s.Error("Write: %s", err.Error())
+			break
+		}
+
+		// close the persistent connection after reply the requset
+		if creq.Close || cresp.Close {
+			break
+		}
+	}
 
 	s.Info("CLOSE %s %s", r.URL.Host, time.Since(start).String())
 }
