@@ -53,7 +53,7 @@ func (self *EngineDirect) Serve(s *Session) {
 		return
 	}
 
-	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, time.Since(start).String())
+	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, BeautifySeconds(time.Since(start)))
 }
 
 // Data flow:
@@ -114,5 +114,5 @@ func (self *EngineDirect) Connect(s *Session) {
 	// EOF and are done!
 	wg.Wait()
 
-	s.Info("CLOSE %s %s", r.URL.Host, time.Since(start).String())
+	s.Info("CLOSE %s %s", r.URL.Host, BeautifySeconds(time.Since(start)))
 }

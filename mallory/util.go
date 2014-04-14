@@ -4,9 +4,26 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strconv"
 	"syscall"
+	"time"
 	"unsafe"
 )
+
+func BeautifySeconds(d time.Duration) string {
+	u := uint64(d)
+	if d < 0 {
+		u = -u
+	}
+	switch {
+	case u < uint64(time.Millisecond):
+		return "0"
+	case u < uint64(time.Second):
+		return strconv.FormatUint(u/uint64(time.Millisecond), 10) + "ms"
+	default:
+		return strconv.FormatUint(u/uint64(time.Second), 10) + "s"
+	}
+}
 
 func CopyResponseHeader(w http.ResponseWriter, r *http.Response) {
 	// copy headers

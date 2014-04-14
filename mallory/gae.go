@@ -118,7 +118,7 @@ func (self *EngineGAE) Serve(s *Session) {
 		return
 	}
 
-	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, time.Since(start).String())
+	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, BeautifySeconds(time.Since(start)))
 }
 
 //  Impossible to connect gae and handle it as a normal TCP connection?
@@ -217,7 +217,9 @@ func (self *EngineGAE) Connect(s *Session) {
 	for {
 		creq, err := http.ReadRequest(bufio.NewReader(sconn))
 		if err != nil {
-			s.Error("ReadRequest: %s", err.Error())
+			if err != io.EOF {
+				s.Error("ReadRequest: %s", err.Error())
+			}
 			break
 		}
 
@@ -252,7 +254,7 @@ func (self *EngineGAE) Connect(s *Session) {
 		}
 	}
 
-	s.Info("CLOSE %s %s", r.URL.Host, time.Since(start).String())
+	s.Info("CLOSE %s %s", r.URL.Host, BeautifySeconds(time.Since(start)))
 }
 
 func (self *EngineGAE) GetCert(s *Session, host string) (cert *tls.Certificate, err error) {
