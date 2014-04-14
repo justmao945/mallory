@@ -11,17 +11,17 @@ import (
 )
 
 func BeautifySeconds(d time.Duration) string {
-	u := uint64(d)
+	u, ms, s := uint64(d), uint64(time.Millisecond), uint64(time.Second)
 	if d < 0 {
 		u = -u
 	}
 	switch {
-	case u < uint64(time.Millisecond):
+	case u < ms:
 		return "0"
-	case u < uint64(time.Second):
-		return strconv.FormatUint(u/uint64(time.Millisecond), 10) + "ms"
+	case u < s:
+		return strconv.FormatUint(u/ms, 10) + "ms"
 	default:
-		return strconv.FormatUint(u/uint64(time.Second), 10) + "s"
+		return strconv.FormatUint(u/s, 10) + "s"
 	}
 }
 
