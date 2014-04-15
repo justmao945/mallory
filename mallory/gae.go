@@ -216,10 +216,10 @@ func (self *EngineGAE) Connect(s *Session) {
 	// read all requests, tls connection reues?
 	for {
 		creq, err := http.ReadRequest(bufio.NewReader(sconn))
-		if err != io.EOF {
-			s.Error("ReadRequest: %s", err.Error())
-		}
 		if err != nil {
+			if err != io.EOF {
+				s.Error("ReadRequest: %s", err.Error())
+			}
 			break
 		}
 
