@@ -216,10 +216,10 @@ func (self *EngineGAE) Connect(s *Session) {
 	// read all requests, tls connection reues?
 	for {
 		creq, err := http.ReadRequest(bufio.NewReader(sconn))
+		if err != io.EOF {
+			s.Error("ReadRequest: %s", err.Error())
+		}
 		if err != nil {
-			if err != io.EOF {
-				s.Error("ReadRequest: %s", err.Error())
-			}
 			break
 		}
 
@@ -283,26 +283,23 @@ func (self *EngineGAE) GetCert(s *Session, host string) (cert *tls.Certificate, 
 		CommonName:   host, // FIXME: common name mismatch
 	}
 	cert, err = CreateSignedCert(self.RootCA, config)
-	if err == nil {
-		// add to memory
-		self.Certs.AddSafe(host, cert)
-		// save cert, fail is accepted
-		fcrt, _err := os.Create(crtnam)
-		if _err == nil {
-			for _, c := range cert.Certificate {
-				_err = pem.Encode(fcrt, &pem.Block{Type: "CERTIFICATE", Bytes: c})
-				if _err != nil {
-					break
-				}
-			}
-			fcrt.Close()
-			if _err != nil {
-				s.Warn("Encode: %s", _err.Error())
-				os.Remove(crtnam)
-			}
-		} else {
-			s.Warn("Create %s", _err.Error())
+	if err != nil {
+		return
+	}
+	// add to memory
+	self.Certs.AddSafe(host, cert)
+	// save to disk
+	fcrt, err := os.Create(crtnam)
+	if err != nil {
+		return
+	}
+	for _, c := range cert.Certificate {
+		err = pem.Encode(fcrt, &pem.Block{Type: "CERTIFICATE", Bytes: c})
+		if err != nil {
+			defer os.Remove(crtnam)
+			break
 		}
 	}
+	defer fcrt.Close()
 	return
 }
