@@ -8,14 +8,12 @@ import (
 	"time"
 )
 
+// Direct fetcher from the host of proxy
 type EngineDirect struct{}
 
-func NewEngineDirect(e *Env) *EngineDirect {
-	return &EngineDirect{}
-}
-
-func (self *EngineDirect) Init() (err error) {
-	return
+// Create and initialize
+func CreateEngineDirect(e *Env) (*EngineDirect, error) {
+	return &EngineDirect{}, nil
 }
 
 // Data flow:
@@ -41,10 +39,8 @@ func (self *EngineDirect) Serve(s *Session) {
 	}
 	defer resp.Body.Close()
 
-	// copy headers
-	CopyResponseHeader(w, resp)
-
 	// please prepare header first and write them
+	CopyHeader(w, resp)
 	w.WriteHeader(resp.StatusCode)
 
 	_, err = io.Copy(w, resp.Body)
@@ -53,7 +49,8 @@ func (self *EngineDirect) Serve(s *Session) {
 		return
 	}
 
-	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, BeautifySeconds(time.Since(start)))
+	d := BeautifyDuration(time.Since(start))
+	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, d)
 }
 
 // Data flow:
@@ -114,5 +111,6 @@ func (self *EngineDirect) Connect(s *Session) {
 	// EOF and are done!
 	wg.Wait()
 
-	s.Info("CLOSE %s %s", r.URL.Host, BeautifySeconds(time.Since(start)))
+	d := BeautifyDuration(time.Since(start))
+	s.Info("CLOSE %s %s", r.URL.Host, d)
 }

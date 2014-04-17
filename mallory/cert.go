@@ -58,6 +58,7 @@ type CertPool struct {
 	mutex sync.RWMutex
 }
 
+// Create
 func NewCertPool() *CertPool {
 	pool := &CertPool{
 		data: make(map[string]*tls.Certificate),
@@ -65,12 +66,14 @@ func NewCertPool() *CertPool {
 	return pool
 }
 
+// Thread safe
 func (self *CertPool) AddSafe(key string, cert *tls.Certificate) {
 	self.mutex.Lock()
 	self.data[key] = cert
 	self.mutex.Unlock()
 }
 
+// Thread safe
 func (self *CertPool) GetSafe(key string) *tls.Certificate {
 	self.mutex.RLock()
 	cert, ok := self.data[key]

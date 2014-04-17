@@ -1,22 +1,18 @@
+// Package mallory implements a simple http proxy support direct and GAE remote fetcher
 package mallory
 
 import (
 	"net/http"
 	"os"
-	"strconv"
 	"sync/atomic"
 )
 
 // The method to fetch data from remote server or connect to another
 // proxy server or something...
 type Engineer interface {
-	// called by server
-	Init() error
-
 	// normal http methods except CONNECT
 	// all operations in this function should be thread safe
 	Serve(*Session)
-
 	// handle CONNECT method, a secure tunnel
 	// all operations in this function should be thread safe
 	// Tunneling TCP based protocols through Web proxy servers
@@ -24,31 +20,38 @@ type Engineer interface {
 	Connect(*Session)
 }
 
+// The main proxy http handler
 type Server struct {
 	// Global config
 	Env *Env
-	// used to generate unique ID for sessions
-	IDZygote int64
 	// different fetch engine can be adapted to the server
 	Engine Engineer
+	// alive connections
+	CountAlive int64
+	// used to generate unique ID for sessions
+	idZygote int64
 }
 
-func NewServer(e *Env) *Server {
-	srv := &Server{}
-	srv.Env = e
-	srv.Engine = NewEngineDirect(e)
-	if e.Engine == "gae" {
-		srv.Engine = NewEngineGAE(e)
-	}
-	return srv
-}
+// Create and intialize
+func CreateServer(e *Env) (self *Server, err error) {
+	self = &Server{Env: e}
 
-func (self *Server) Init() error {
-	err := os.MkdirAll(self.Env.Work, 0755)
+	err = os.MkdirAll(e.Work, 0755)
 	if err != nil && !os.IsExist(err) {
-		return err
+		return
 	}
-	return self.Engine.Init()
+
+	if e.Engine == "gae" {
+		self.Engine, err = CreateEngineGAE(e)
+	} else {
+		self.Engine, err = CreateEngineDirect(e)
+	}
+	return
+}
+
+// Return a new unique ID, thread safe
+func (self *Server) NewID() int64 {
+	return atomic.AddInt64(&self.idZygote, 1)
 }
 
 // HTTP proxy accepts requests with following two types:
@@ -75,11 +78,7 @@ func (self *Server) Init() error {
 //    to the remote server and copy the reponse to client.
 //
 func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	sid, err := strconv.ParseInt(r.Header.Get("Mallory-Session"), 0, 64)
-	if err != nil {
-		sid = atomic.AddInt64(&self.IDZygote, 1)
-	}
-	s := NewSession(self.Env, sid, w, r)
+	s := CreateSession(self, w, r)
 
 	s.Info("%s %s %s", r.Method, r.URL.Host, r.Proto)
 
@@ -99,9 +98,13 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//   be communicated by proxies over further connections.
 	r.Header.Del("Connection")
 
+	atomic.AddInt64(&self.CountAlive, 1)
+
 	if r.Method == "CONNECT" {
 		self.Engine.Connect(s)
 	} else {
 		self.Engine.Serve(s)
 	}
+
+	atomic.AddInt64(&self.CountAlive, -1)
 }

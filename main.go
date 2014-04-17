@@ -18,8 +18,8 @@ func main() {
 		log.Printf("\tAppSpot: %s\n", env.AppSpot)
 	}
 
-	srv := mallory.NewServer(&env)
-	if err := srv.Init(); err != nil {
+	srv, err := mallory.CreateServer(&env)
+	if err != nil {
 		log.Fatal(err)
 	}
 	log.Fatal(http.ListenAndServe(env.Addr, srv))

@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"path"
 	"runtime"
+	"strconv"
 )
 
 // A session is a proxy request
 type Session struct {
-	// Global config
-	Env *Env
+	// Global server
+	Server *Server
 	// the unique ID start from 1
 	ID int64
 	// Copy from the http handler
@@ -18,9 +19,13 @@ type Session struct {
 	Request        *http.Request
 }
 
-func NewSession(e *Env, id int64, w http.ResponseWriter, r *http.Request) *Session {
+func CreateSession(s *Server, w http.ResponseWriter, r *http.Request) *Session {
+	id, err := strconv.ParseInt(r.Header.Get("Mallory-Session"), 0, 64)
+	if err != nil {
+		id = s.NewID()
+	}
 	return &Session{
-		Env:            e,
+		Server:         s,
 		ID:             id,
 		ResponseWriter: w,
 		Request:        r,
@@ -28,7 +33,8 @@ func NewSession(e *Env, id int64, w http.ResponseWriter, r *http.Request) *Sessi
 }
 
 func (self *Session) printf(format string, args ...interface{}) {
-	log.Printf("[%03d] "+format+"\n", append([]interface{}{self.ID}, args...)...)
+	br := []interface{}{self.ID, self.Server.CountAlive}
+	log.Printf("[%03d/%02d] "+format+"\n", append(br, args...)...)
 }
 
 func (self *Session) printatf(ty, format string, args ...interface{}) {
@@ -37,7 +43,8 @@ func (self *Session) printatf(ty, format string, args ...interface{}) {
 		file = "???"
 		line = 0
 	}
-	self.printf(ty+"%s:%d:"+format, append([]interface{}{path.Base(file), line}, args...)...)
+	loc := []interface{}{path.Base(file), line}
+	self.printf(ty+"%s:%d:"+format, append(loc, args...)...)
 }
 
 func (self *Session) Info(format string, args ...interface{}) {
@@ -45,7 +52,7 @@ func (self *Session) Info(format string, args ...interface{}) {
 }
 
 func (self *Session) Warn(format string, args ...interface{}) {
-	if self.Env.Istty {
+	if self.Server.Env.Istty {
 		self.printatf(CO_YELLOW+"WARN: ", format+CO_RESET, args...)
 	} else {
 		self.printatf("WARN: ", format, args...)
@@ -53,7 +60,7 @@ func (self *Session) Warn(format string, args ...interface{}) {
 }
 
 func (self *Session) Error(format string, args ...interface{}) {
-	if self.Env.Istty {
+	if self.Server.Env.Istty {
 		self.printatf(CO_RED+"ERRO: ", format+CO_RESET, args...)
 	} else {
 		self.printatf("ERRO: ", format, args...)

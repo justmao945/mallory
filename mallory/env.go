@@ -40,6 +40,7 @@ type Env struct {
 	Istty bool
 }
 
+// Prepare flags and env
 func (self *Env) Parse() error {
 	flag.StringVar(&self.Work, "work", "$HOME/.mallory", "Work directory for mallory")
 	flag.StringVar(&self.Addr, "addr", "127.0.0.1:18087", "Mallory server address, Host:Port")

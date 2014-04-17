@@ -8,12 +8,14 @@ import (
 	"runtime"
 )
 
+// Record a connection
 type Session struct {
 	Ctx    appengine.Context
 	Writer http.ResponseWriter
 	ReqID  string
 }
 
+// Create new session from context and writer
 func NewSession(ctx appengine.Context, w http.ResponseWriter) *Session {
 	return &Session{
 		Ctx:    ctx,
@@ -22,10 +24,12 @@ func NewSession(ctx appengine.Context, w http.ResponseWriter) *Session {
 	}
 }
 
+// Log info messages for this session
 func (self *Session) Info(format string, args ...interface{}) {
 	self.Ctx.Infof("[%s] "+format, append([]interface{}{self.ReqID}, args...)...)
 }
 
+// Log error messages and write back 500 HTTP error.
 func (self *Session) HTTPError(format string, args ...interface{}) {
 	_, file, line, ok := runtime.Caller(1)
 	if !ok {

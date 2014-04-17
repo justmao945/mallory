@@ -25,33 +25,33 @@ type EngineGAE struct {
 	// work space for this engine
 	Work string
 	// place store certificates
-	CertsDir string
+	CertDir string
 	// Loaded certificate, contains the root certificate and private key
 	RootCA *tls.Certificate
 	// Pool of auto generated fake certificates signed by RootCert
-	Certs *CertPool
+	CertPool *CertPool
 }
 
-func NewEngineGAE(e *Env) *EngineGAE {
-	self := &EngineGAE{Env: e}
-	self.Work = path.Join(self.Env.Work, "gae")
-	self.CertsDir = path.Join(self.Work, "certs")
-	self.Certs = NewCertPool()
-	return self
-}
+// Create and initialize
+func CreateEngineGAE(e *Env) (self *EngineGAE, err error) {
+	self = &EngineGAE{
+		Env:      e,
+		CertPool: NewCertPool(),
+	}
+	self.Work = path.Join(e.Work, "gae")
+	self.CertDir = path.Join(self.Work, "certs")
 
-func (self *EngineGAE) Init() error {
-	err := os.MkdirAll(self.CertsDir, 0755)
+	err = os.MkdirAll(self.CertDir, 0755)
 	if err != nil && !os.IsExist(err) {
-		return err
+		return
 	}
 
 	rcert, err := tls.LoadX509KeyPair(self.Env.Cert, self.Env.Key)
 	if err != nil {
-		return err
+		return
 	}
 	self.RootCA = &rcert
-	return nil
+	return
 }
 
 // Data flow:
@@ -106,10 +106,8 @@ func (self *EngineGAE) Serve(s *Session) {
 	}
 	defer cres.Body.Close()
 
-	// copy headers
-	CopyResponseHeader(w, cres)
-
 	// please prepare header first and write them
+	CopyHeader(w, cres)
 	w.WriteHeader(cres.StatusCode)
 
 	_, err = io.Copy(w, cres.Body)
@@ -118,7 +116,8 @@ func (self *EngineGAE) Serve(s *Session) {
 		return
 	}
 
-	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, BeautifySeconds(time.Since(start)))
+	d := BeautifyDuration(time.Since(start))
+	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, d)
 }
 
 //  Impossible to connect gae and handle it as a normal TCP connection?
@@ -254,23 +253,25 @@ func (self *EngineGAE) Connect(s *Session) {
 		}
 	}
 
-	s.Info("CLOSE %s %s", r.URL.Host, BeautifySeconds(time.Since(start)))
+	d := BeautifyDuration(time.Since(start))
+	s.Info("CLOSE %s %s", r.URL.Host, d)
 }
 
+// Get certificate from memory cache, disk, or create a new cert.
 func (self *EngineGAE) GetCert(s *Session, host string) (cert *tls.Certificate, err error) {
 	// firstly, try to find in memory
-	cert = self.Certs.GetSafe(host)
+	cert = self.CertPool.GetSafe(host)
 	if cert != nil {
 		return
 	}
 
 	// secondly, try to find on disk
-	crtnam := path.Join(self.CertsDir, host+".crt")
+	crtnam := path.Join(self.CertDir, host+".crt")
 	// we use the same key with CA
 	crt, err := tls.LoadX509KeyPair(crtnam, self.Env.Key)
 	if err == nil {
 		cert = &crt
-		self.Certs.AddSafe(host, cert)
+		self.CertPool.AddSafe(host, cert)
 		return
 	} else if !os.IsNotExist(err) {
 		s.Warn("LoadX509KeyPair: %s", err.Error())
@@ -287,7 +288,7 @@ func (self *EngineGAE) GetCert(s *Session, host string) (cert *tls.Certificate, 
 		return
 	}
 	// add to memory
-	self.Certs.AddSafe(host, cert)
+	self.CertPool.AddSafe(host, cert)
 	// save to disk
 	fcrt, err := os.Create(crtnam)
 	if err != nil {

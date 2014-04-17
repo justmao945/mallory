@@ -10,7 +10,8 @@ import (
 	"unsafe"
 )
 
-func BeautifySeconds(d time.Duration) string {
+// Duration to ??ms or ??s, human readable translation
+func BeautifyDuration(d time.Duration) string {
 	u, ms, s := uint64(d), uint64(time.Millisecond), uint64(time.Second)
 	if d < 0 {
 		u = -u
@@ -25,7 +26,8 @@ func BeautifySeconds(d time.Duration) string {
 	}
 }
 
-func CopyResponseHeader(w http.ResponseWriter, r *http.Response) {
+// copy and overwrite headers from r to w
+func CopyHeader(w http.ResponseWriter, r *http.Response) {
 	// copy headers
 	dst, src := w.Header(), r.Header
 	for k, _ := range dst {
@@ -38,12 +40,14 @@ func CopyResponseHeader(w http.ResponseWriter, r *http.Response) {
 	}
 }
 
+// POSIX ioctl syscall
 // From https://github.com/mreiferson/go-simplelog/blob/master/simplelog.go
 func Ioctl(fd, request, argp uintptr) syscall.Errno {
 	_, _, errorp := syscall.Syscall(syscall.SYS_IOCTL, fd, request, argp)
 	return errorp
 }
 
+// Test is a termnial or not
 // From https://github.com/mreiferson/go-simplelog/blob/master/simplelog.go
 func Isatty(f *os.File) bool {
 	switch runtime.GOOS {

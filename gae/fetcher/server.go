@@ -1,3 +1,4 @@
+// Package fetcher implements a simple bridge for HTTP request and response
 package fetcher
 
 import (
@@ -52,6 +53,7 @@ func HandleHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// unimplemented
 func HandleConnect(w http.ResponseWriter, r *http.Request) {
 	// TODO: socket?
 }
