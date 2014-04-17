@@ -19,7 +19,7 @@ type Session struct {
 	Request        *http.Request
 }
 
-func CreateSession(s *Server, w http.ResponseWriter, r *http.Request) *Session {
+func NewSession(s *Server, w http.ResponseWriter, r *http.Request) *Session {
 	id, err := strconv.ParseInt(r.Header.Get("Mallory-Session"), 0, 64)
 	if err != nil {
 		id = s.NewID()

@@ -78,7 +78,7 @@ func (self *Server) NewID() int64 {
 //    to the remote server and copy the reponse to client.
 //
 func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s := CreateSession(self, w, r)
+	s := NewSession(self, w, r)
 	atomic.AddInt64(&self.CountAlive, 1)
 
 	s.Info("%s %s %s", r.Method, r.URL.Host, r.Proto)
