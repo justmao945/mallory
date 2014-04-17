@@ -3,12 +3,9 @@ package mallory
 import (
 	"bufio"
 	"bytes"
-	"crypto/sha1"
 	"crypto/tls"
-	"encoding/pem"
 	"fmt"
 	"io"
-	"math/big"
 	"net"
 	"net/http"
 	"net/url"
@@ -29,15 +26,12 @@ type EngineGAE struct {
 	// Loaded certificate, contains the root certificate and private key
 	RootCA *tls.Certificate
 	// Pool of auto generated fake certificates signed by RootCert
-	CertPool *CertPool
+	Certs *CertPool
 }
 
 // Create and initialize
 func CreateEngineGAE(e *Env) (self *EngineGAE, err error) {
-	self = &EngineGAE{
-		Env:      e,
-		CertPool: NewCertPool(),
-	}
+	self = &EngineGAE{Env: e}
 	self.Work = path.Join(e.Work, "gae")
 	self.CertDir = path.Join(self.Work, "certs")
 
@@ -51,6 +45,8 @@ func CreateEngineGAE(e *Env) (self *EngineGAE, err error) {
 		return
 	}
 	self.RootCA = &rcert
+
+	self.Certs = NewCertPool(self.CertDir, &rcert)
 	return
 }
 
@@ -188,9 +184,9 @@ func (self *EngineGAE) Connect(s *Session) {
 	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 	// get the fake cert, every host should have its own cert
-	cert, err := self.GetCert(s, host)
+	cert, err := self.Certs.Get(host)
 	if err != nil {
-		s.Error("GetCert: %s", err.Error())
+		s.Error("CertPool.Get: %s", err.Error())
 		return
 	}
 
@@ -255,52 +251,4 @@ func (self *EngineGAE) Connect(s *Session) {
 
 	d := BeautifyDuration(time.Since(start))
 	s.Info("CLOSE %s %s", r.URL.Host, d)
-}
-
-// Get certificate from memory cache, disk, or create a new cert.
-func (self *EngineGAE) GetCert(s *Session, host string) (cert *tls.Certificate, err error) {
-	// firstly, try to find in memory
-	cert = self.CertPool.GetSafe(host)
-	if cert != nil {
-		return
-	}
-
-	// secondly, try to find on disk
-	crtnam := path.Join(self.CertDir, host+".crt")
-	// we use the same key with CA
-	crt, err := tls.LoadX509KeyPair(crtnam, self.Env.Key)
-	if err == nil {
-		cert = &crt
-		self.CertPool.AddSafe(host, cert)
-		return
-	} else if !os.IsNotExist(err) {
-		s.Warn("LoadX509KeyPair: %s", err.Error())
-	}
-
-	// finally, try to create a new cert
-	sn := sha1.Sum([]byte(host))
-	config := &CertConfig{
-		SerialNumber: new(big.Int).SetBytes(sn[:]),
-		CommonName:   host, // FIXME: common name mismatch
-	}
-	cert, err = CreateSignedCert(self.RootCA, config)
-	if err != nil {
-		return
-	}
-	// add to memory
-	self.CertPool.AddSafe(host, cert)
-	// save to disk
-	fcrt, err := os.Create(crtnam)
-	if err != nil {
-		return
-	}
-	for _, c := range cert.Certificate {
-		err = pem.Encode(fcrt, &pem.Block{Type: "CERTIFICATE", Bytes: c})
-		if err != nil {
-			defer os.Remove(crtnam)
-			break
-		}
-	}
-	defer fcrt.Close()
-	return
 }

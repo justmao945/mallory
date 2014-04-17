@@ -10,7 +10,7 @@ import (
 	"unsafe"
 )
 
-// Duration to ??ms or ??s, human readable translation
+// Duration to e.g. 432ms or 12s, human readable translation
 func BeautifyDuration(d time.Duration) string {
 	u, ms, s := uint64(d), uint64(time.Millisecond), uint64(time.Second)
 	if d < 0 {
