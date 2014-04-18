@@ -6,9 +6,9 @@ Yet another http proxy written in golang, including direct and GAE fetcher
 
 Status
 =============
-* Still under development
 * Support direct fetcher, e.g. http, https...
 * Support GAE fetcher, only support http and https with port 443. In this mode we need to deploy fake certificates to forward https requests...
+* Simple PAC file server
 
 Installation
 =============
@@ -47,9 +47,7 @@ openssl req -new -x509 -days 365 -key mollory.key -out mallory.crt
 
 TODO
 =============
-* Optimize response time
-* Fix still can not work well on some https sites
 * Add test
+* Optimize response time
 * Add appspot IP resolver
-* Add pac server and config
 * ....

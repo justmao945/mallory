@@ -36,6 +36,8 @@ type Env struct {
 	//      openssl req -new -x509 -days 365 -key mollory.key -out mallory.crt
 	Key  string // mallory.key
 	Cert string // mallory.crt
+	// pac file path
+	PAC string
 	// terminal helper, test the default logger(os.Stderr) is terminal or not
 	Istty bool
 }
@@ -49,6 +51,7 @@ func (self *Env) Parse() error {
 	flag.StringVar(&self.Engine, "engine", "direct", `Mallory engine, "direct" or "gae"`)
 	flag.StringVar(&self.Key, "key", "mallory.key", "Mallory server private key file")
 	flag.StringVar(&self.Cert, "cert", "mallory.crt", "Mallory server certificate file")
+	flag.StringVar(&self.PAC, "pac", "", "Malllory PAC service file")
 
 	flag.Parse()
 
@@ -60,6 +63,7 @@ func (self *Env) Parse() error {
 	self.Work = os.ExpandEnv(self.Work)
 	self.Key = os.ExpandEnv(self.Key)
 	self.Cert = os.ExpandEnv(self.Cert)
+	self.PAC = os.ExpandEnv(self.PAC)
 
 	self.Istty = Isatty(os.Stderr)
 	return nil

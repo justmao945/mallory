@@ -113,7 +113,7 @@ func (self *EngineGAE) Serve(s *Session) {
 	}
 
 	d := BeautifyDuration(time.Since(start))
-	s.Info("RESPONSE %s %s %s", r.URL.Host, resp.Status, d)
+	s.Info("RESPONSE %s %s", resp.Status, d)
 }
 
 //  Impossible to connect gae and handle it as a normal TCP connection?
@@ -249,6 +249,5 @@ func (self *EngineGAE) Connect(s *Session) {
 		}
 	}
 
-	d := BeautifyDuration(time.Since(start))
-	s.Info("CLOSE %s %s", r.URL.Host, d)
+	s.Info("CLOSE %s", BeautifyDuration(time.Since(start)))
 }

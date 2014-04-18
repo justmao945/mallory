@@ -33,7 +33,7 @@ func HandleHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// record the real client request
-	s.Info("%s %s://%s %s\n", creq.Method, creq.URL.Scheme, creq.URL.Host, creq.Proto)
+	s.Info("%s %s %s\n", creq.Method, creq.URL.String(), creq.Proto)
 
 	// round trip the client request
 	// in fact RoundTrip supports both http and https
@@ -45,7 +45,7 @@ func HandleHTTP(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	// remote server response
-	s.Info("RESPONSE %s %s\n", creq.URL.Host, resp.Status)
+	s.Info("RESPONSE %s\n", resp.Status)
 
 	// write response and send to client
 	if err := resp.Write(w); err != nil {

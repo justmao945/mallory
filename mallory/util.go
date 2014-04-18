@@ -1,6 +1,7 @@
 package mallory
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"runtime"
@@ -59,4 +60,9 @@ func Isatty(f *os.File) bool {
 	var t [2]byte
 	errno := Ioctl(f.Fd(), syscall.TIOCGPGRP, uintptr(unsafe.Pointer(&t)))
 	return errno == 0
+}
+
+// Return http status text looks like "200 OK"
+func StatusText(c int) string {
+	return fmt.Sprintf("%d %s", c, http.StatusText(c))
 }

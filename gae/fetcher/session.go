@@ -26,7 +26,8 @@ func NewSession(ctx appengine.Context, w http.ResponseWriter) *Session {
 
 // Log info messages for this session
 func (self *Session) Info(format string, args ...interface{}) {
-	self.Ctx.Infof("[%s] "+format, append([]interface{}{self.ReqID}, args...)...)
+	e := append([]interface{}{self.ReqID}, args...)
+	self.Ctx.Infof("[%s] "+format, e...)
 }
 
 // Log error messages and write back 500 HTTP error.
@@ -36,7 +37,8 @@ func (self *Session) HTTPError(format string, args ...interface{}) {
 		file = "???"
 		line = 0
 	}
-	s := fmt.Sprintf("[%s] %s:%d: "+format, append([]interface{}{self.ReqID, path.Base(file), line}, args...)...)
+	e := append([]interface{}{self.ReqID, path.Base(file), line}, args...)
+	s := fmt.Sprintf("[%s] %s:%d: "+format, e...)
 	self.Ctx.Errorf(s + "\n")
 	http.Error(self.Writer, s, http.StatusInternalServerError)
 }
