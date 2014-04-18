@@ -210,7 +210,7 @@ func (self *EngineGAE) Connect(s *Session) {
 	// finally, we are at application layer, http request comes
 	// read all requests, tls connection reues?
 	// Pipeline: http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html
-	rch := make(chan []byte, 6)
+	rch := make(chan *http.Request, 8)
 	go func() {
 		// close the channel after all done, notify the reader
 		defer close(rch)
@@ -227,21 +227,15 @@ func (self *EngineGAE) Connect(s *Session) {
 			creq.URL, err = url.Parse("https://" + host + creq.URL.String())
 			creq.Header.Set("Mallory-Session", strconv.FormatInt(s.ID, 10))
 
-			var buffer bytes.Buffer
-			err = creq.WriteProxy(&buffer)
+			// Now re-write the client request to self, HTTP handler
+			err = creq.WriteProxy(rconn)
 			if err != nil {
 				s.Error("WriteProxy: %s", err.Error())
 				break
 			}
 
-			// Now re-write the client request to self, HTTP handler
-			_, err = rconn.Write(buffer.Bytes())
-			if err != nil {
-				s.Error("Write: %s", err.Error())
-				break
-			}
-			// write to chan
-			rch <- buffer.Bytes()
+			// write to chan to sync
+			rch <- creq
 
 			// break if close
 			if creq.Close {
@@ -251,16 +245,8 @@ func (self *EngineGAE) Connect(s *Session) {
 	}()
 
 	for {
-		creq, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(<-rch)))
-		if err != nil {
-			if err != io.EOF {
-				s.Error("ReadRequest: %s", err.Error())
-			}
-			break
-		}
-
 		// write back all responses
-		cresp, err := http.ReadResponse(bufio.NewReader(rconn), creq)
+		cresp, err := http.ReadResponse(bufio.NewReader(rconn), <-rch)
 		if err != nil {
 			s.Error("ReadResponse: %s", err.Error())
 			break
