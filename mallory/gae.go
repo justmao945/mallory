@@ -246,7 +246,13 @@ func (self *EngineGAE) Connect(s *Session) {
 
 	for {
 		// write back all responses
-		cresp, err := http.ReadResponse(bufio.NewReader(rconn), <-rch)
+		creq, ok := <-rch
+		if !ok {
+			break // closed by previous sender
+		}
+
+		// responses have the same order of requests
+		cresp, err := http.ReadResponse(bufio.NewReader(rconn), creq)
 		if err != nil {
 			s.Error("ReadResponse: %s", err.Error())
 			break
