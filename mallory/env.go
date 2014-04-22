@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"os"
+	"path"
 )
 
 const (
@@ -44,14 +45,14 @@ type Env struct {
 
 // Prepare flags and env
 func (self *Env) Parse() error {
-	flag.StringVar(&self.Work, "work", "$HOME/.mallory", "Work directory for mallory")
+	flag.StringVar(&self.Work, "work", path.Join("$HOME", ".mallory"), "Work directory for mallory")
 	flag.StringVar(&self.Addr, "addr", "127.0.0.1:18087", "Mallory server address, Host:Port")
 	// -appsopt=debug to connect the localhost server for debug
 	flag.StringVar(&self.AppSpot, "appspot", "oribe-yasuna", "GAE application ID")
 	flag.StringVar(&self.Engine, "engine", "direct", `Mallory engine, "direct" or "gae"`)
 	flag.StringVar(&self.Key, "key", "mallory.key", "Mallory server private key file")
 	flag.StringVar(&self.Cert, "cert", "mallory.crt", "Mallory server certificate file")
-	flag.StringVar(&self.PAC, "pac", "", "Malllory PAC service file")
+	flag.StringVar(&self.PAC, "pac", "", "Mallory PAC service file")
 
 	flag.Parse()
 
