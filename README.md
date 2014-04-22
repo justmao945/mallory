@@ -51,3 +51,15 @@ TODO
 * Optimize response time
 * Add appspot IP resolver
 * ....
+
+
+References
+=============
+* [goproxy][1]
+* [mitmproxy][2]
+* [goagent][3]
+ 
+
+[1]: https://github.com/elazarl/goproxy
+[2]: http://mitmproxy.org/
+[3]: https://github.com/goagent
