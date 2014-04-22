@@ -51,7 +51,7 @@ func (self *Env) Parse() error {
 	flag.StringVar(&self.Engine, "engine", "direct", `Mallory engine, "direct" or "gae"`)
 	flag.StringVar(&self.Key, "key", "mallory.key", "Mallory server private key file")
 	flag.StringVar(&self.Cert, "cert", "mallory.crt", "Mallory server certificate file")
-	flag.StringVar(&self.PAC, "pac", "", "Malllory PAC service file")
+	flag.StringVar(&self.PAC, "pac", "mallory.pac", "Malllory PAC service file")
 
 	flag.Parse()
 
