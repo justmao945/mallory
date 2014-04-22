@@ -123,7 +123,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		srv.Serve(s)
 	} else if r.Method == "CONNECT" {
 		self.Engine.Connect(s)
-	} else {
+	} else if r.URL.IsAbs() {
 		// This is an error if is not empty on Client
 		r.RequestURI = ""
 		// If no Accept-Encoding header exists, Transport will add the headers it can accept
