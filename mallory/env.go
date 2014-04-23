@@ -45,16 +45,11 @@ type Env struct {
 
 // Prepare flags and env
 func (self *Env) Parse() error {
-	workdir := path.Join("$HOME", ".mallory")
-
-	flag.StringVar(&self.Work, "work", workdir, "Work directory for mallory")
 	flag.StringVar(&self.Addr, "addr", "127.0.0.1:18087", "Mallory server address, Host:Port")
 	// -appsopt=debug to connect the localhost server for debug
 	flag.StringVar(&self.AppSpot, "appspot", "oribe-yasuna", "GAE application ID")
 	flag.StringVar(&self.Engine, "engine", "direct", `Mallory engine, "direct" or "gae"`)
-	flag.StringVar(&self.Key, "key", path.Join(workdir, "mallory.key"), "Mallory server private key file")
-	flag.StringVar(&self.Cert, "cert", path.Join(workdir, "mallory.crt"), "Mallory server certificate file")
-	flag.StringVar(&self.PAC, "pac", path.Join(workdir, "mallory.pac"), "Mallory PAC service file")
+	flag.StringVar(&self.Work, "work", path.Join("$HOME", ".mallory"), "Work directory for mallory")
 
 	flag.Parse()
 
@@ -64,9 +59,9 @@ func (self *Env) Parse() error {
 
 	// expand env vars for paths
 	self.Work = os.ExpandEnv(self.Work)
-	self.Key = os.ExpandEnv(self.Key)
-	self.Cert = os.ExpandEnv(self.Cert)
-	self.PAC = os.ExpandEnv(self.PAC)
+	self.Key = path.Join(self.Work, "mallory.key")
+	self.Cert = path.Join(self.Work, "mallory.crt")
+	self.PAC = path.Join(self.Work, "mallory.pac")
 
 	self.Istty = Isatty(os.Stderr)
 	return nil
