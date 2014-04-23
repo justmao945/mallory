@@ -45,7 +45,7 @@ vim gae/app.yaml
 goapp deploy gae/
 
 # this mode need to use the fake CA, default include mallory.crt and mallory.key
-mallory -engine=gae -appspot=your_app_id -cert=path/to/cert.crt -key=path/to/key.key
+mallory -engine=gae -appspot=your_app_id
 
 # or generate the private key and sign the Root CA by yourself
 openssl genrsa -out mallory.key 2048
