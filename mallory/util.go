@@ -62,6 +62,12 @@ func Isatty(f *os.File) bool {
 	return errno == 0
 }
 
+// Test a file is exist or not
+func IsExist(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
 // Return http status text looks like "200 OK"
 func StatusText(c int) string {
 	return fmt.Sprintf("%d %s", c, http.StatusText(c))
