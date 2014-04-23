@@ -12,6 +12,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	hint := env.Fallback()
+	for _, v := range hint {
+		log.Printf("Warning: %s\n", v)
+	}
+	if len(hint) != 0 {
+		log.Println("Fallback to default")
+	}
+
 	log.Printf("Starting...\n")
 	srv, err := mallory.CreateServer(&env)
 	if err != nil {
