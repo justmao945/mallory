@@ -54,7 +54,7 @@ func (self *Env) Parse() error {
 	flag.StringVar(&self.Engine, "engine", "direct", `Mallory engine, "direct" or "gae"`)
 	flag.StringVar(&self.Key, "key", path.Join(workdir, "mallory.key"), "Mallory server private key file")
 	flag.StringVar(&self.Cert, "cert", path.Join(workdir, "mallory.crt"), "Mallory server certificate file")
-	flag.StringVar(&self.PAC, "pac", "", "Mallory PAC service file")
+	flag.StringVar(&self.PAC, "pac", path.Join(workdir, "mallory.pac"), "Mallory PAC service file")
 
 	flag.Parse()
 
@@ -70,37 +70,4 @@ func (self *Env) Parse() error {
 
 	self.Istty = Isatty(os.Stderr)
 	return nil
-}
-
-// fallback config and return helpful messages
-func (self *Env) Fallback() (hint []string) {
-	if !IsExist(self.Work) {
-		return
-	}
-
-	if self.Engine == "gae" {
-		fall := path.Join(self.Work, "mallory.key")
-		_, err := os.Stat(self.Key)
-		if err != nil && IsExist(fall) {
-			self.Key = fall
-			hint = append(hint, err.Error())
-		}
-
-		fall = path.Join(self.Work, "mallory.crt")
-		_, err = os.Stat(self.Cert)
-		if err != nil && IsExist(fall) {
-			self.Cert = fall
-			hint = append(hint, err.Error())
-		}
-	}
-
-	if self.PAC != "" {
-		fall := path.Join(self.Work, "mallory.pac")
-		_, err := os.Stat(self.PAC)
-		if err != nil && IsExist(fall) {
-			self.PAC = fall
-			hint = append(hint, err.Error())
-		}
-	}
-	return
 }
