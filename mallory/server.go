@@ -63,7 +63,7 @@ func CreateServer(e *Env) (self *Server, err error) {
 	}
 
 	// add services
-	if e.PAC != "" {
+	if IsExist(e.PAC) {
 		srv, err := CreateServicePAC(e)
 		if err != nil {
 			return self, err
