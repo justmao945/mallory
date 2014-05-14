@@ -24,7 +24,7 @@ func main() {
 		log.Printf("\tAppSpot: %s\n", env.AppSpot)
 	}
 
-	if env.PAC != "" {
+	if env.PAC != "" && mallory.IsExist(env.PAC) {
 		log.Printf("\tService: PAC file at http://%s/pac\n", env.Addr)
 	}
 	log.Fatal(http.ListenAndServe(env.Addr, srv))
