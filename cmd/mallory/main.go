@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/justmao945/mallory/mallory"
+	"github.com/justmao945/mallory"
 	"log"
 	"net/http"
 )

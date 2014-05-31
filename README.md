@@ -13,15 +13,12 @@ Status
 Installation
 =============
 ```sh
-go get github.com/justmao945/mallory
+go get github.com/justmao945/mallory/cmd/mallory
 ```
 
 Direct Engine Usage
 =============
 ```sh
-# copy config to the default work dir
-mkdir ~/.mallory && cp mallory.* ~/.mallory
-
 # this is the default mode
 mallory
 2014/04/12 01:56:33 Listen and serve on 127.0.0.1:18087
@@ -32,17 +29,17 @@ GAE Engine Usage
 =============
 ```sh
 # copy config to the default work dir
-mkdir ~/.mallory && cp mallory.* ~/.mallory
+mkdir ~/.mallory && cp cfg/* ~/.mallory
 
 # before start the proxy server, we'd better upload the GAE remote application
 # for details see https://appengine.google.com
 cd mallory/
 
 # put your own app id into app.yaml
-vim gae/app.yaml
+vim gae_server/app.yaml
 
 # deploy it with go_appengine, https://developers.google.com/appengine/downloads
-goapp deploy gae/
+goapp deploy gae_server/
 
 # this mode need to use the fake CA, default include mallory.crt and mallory.key
 mallory -engine=gae -appspot=your_app_id
