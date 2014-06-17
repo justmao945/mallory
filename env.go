@@ -26,6 +26,8 @@ type Env struct {
 	// GAE application ID, only valid when the engine is "gae"
 	// e.g. kill-me-baby of http://kill-me-baby.appspot.com
 	AppSpot string
+	// url of socks proxy, only valid when the engine is SocksToHttp
+	SocksProxy string
 	// > http://www.akadia.com/services/ssh_test_certificate.html
 	// > http://mitmproxy.org/doc/ssl.html
 	// RSA private key file and self-signed root certificate file
@@ -47,14 +49,15 @@ type Env struct {
 func (self *Env) Parse() error {
 	flag.StringVar(&self.Addr, "addr", "127.0.0.1:18087", "Mallory server address, Host:Port")
 	// -appsopt=debug to connect the localhost server for debug
-	flag.StringVar(&self.AppSpot, "appspot", "oribe-yasuna", "GAE application ID")
-	flag.StringVar(&self.Engine, "engine", "direct", `Mallory engine, "direct" or "gae"`)
+	flag.StringVar(&self.AppSpot, "appspot", "oribe-yasuna", "GAE application ID, only valid when engine is gae")
+	flag.StringVar(&self.Engine, "engine", "direct", `Mallory engine, "direct", "s2h" or "gae"`)
+	flag.StringVar(&self.SocksProxy, "socks_proxy", "socks5://localhost:1314", "SOCKS5 proxy URL, only valid when engine is s2h")
 	flag.StringVar(&self.Work, "work", path.Join("$HOME", ".mallory"), "Work directory for mallory")
 
 	flag.Parse()
 
-	if self.Engine != "gae" && self.Engine != "direct" {
-		return errors.New(`engine should be "direct" or "gae"`)
+	if self.Engine != "gae" && self.Engine != "direct" && self.Engine != "s2h" {
+		return errors.New(`engine should be "direct", "s2h" or "gae"`)
 	}
 
 	// expand env vars for paths

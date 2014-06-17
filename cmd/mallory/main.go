@@ -27,5 +27,9 @@ func main() {
 	if env.PAC != "" && mallory.IsExist(env.PAC) {
 		log.Printf("\tService: PAC file at http://%s/pac\n", env.Addr)
 	}
+
+	if env.SocksProxy != "" {
+		log.Printf("\tSocks Proxy: %s\n", env.SocksProxy)
+	}
 	log.Fatal(http.ListenAndServe(env.Addr, srv))
 }

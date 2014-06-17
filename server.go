@@ -58,6 +58,8 @@ func CreateServer(e *Env) (self *Server, err error) {
 	// create engines
 	if e.Engine == "gae" {
 		self.Engine, err = CreateEngineGAE(e)
+	} else if e.Engine == "s2h" {
+		self.Engine, err = CreateEngineSocksToHttp(e)
 	} else {
 		self.Engine, err = CreateEngineDirect(e)
 	}
