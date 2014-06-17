@@ -7,6 +7,7 @@ Yet another http proxy written in golang, including direct and GAE fetcher
 Status
 =============
 * Support direct fetcher, e.g. http, https...
+* Support SOCKS5 proxy to HTTP/HTTPS proxy forward.
 * Support GAE fetcher, only support http and https with port 443. In this mode we need to deploy fake certificates to forward https requests...
 * Simple PAC file server
 
@@ -23,6 +24,18 @@ Direct Engine Usage
 mallory
 2014/04/12 01:56:33 Listen and serve on 127.0.0.1:18087
 2014/04/12 01:56:33 	Engine: direct
+```
+
+SOCKS2HTTP Engine Usage
+=============
+```sh
+# Assume we have a SOCKS5 proxy at http://localhost:1314
+# e.g. ssh -D 1314 remote-server
+# Now we can use HTTP/HTTPS proxy at localhost:18087
+mallory -engine=s2h
+2014/06/17 18:57:15 Listen and serve on 127.0.0.1:18087
+2014/06/17 18:57:15 	Engine: s2h
+2014/06/17 18:57:15 	Socks Proxy: socks5://localhost:1314
 ```
 
 GAE Engine Usage
@@ -52,8 +65,6 @@ openssl req -new -x509 -days 365 -key mollory.key -out mallory.crt
 TODO
 =============
 * Add test
-* Optimize response time
-* Add appspot IP resolver
 * ....
 
 
