@@ -9,7 +9,7 @@ Status
 * Support direct fetcher that spawn links from the running machine.
 * Support GAE fetcher, only support http and https with port 443. In this mode we need to deploy fake certificates to forward https requests...
 * Support SOCKS5 proxy fetcher, aka SOCKS5 to HTTP proxy translator.
-* Support SSH fetcher, aka SSH tunnel.
+* Support SSH fetcher, aka HTTP proxy via SSH tunnel.
 * Simple PAC file server.
 
 Installation
