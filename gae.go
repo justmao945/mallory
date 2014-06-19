@@ -75,11 +75,7 @@ func (self *EngineGAE) Serve(s *Session) {
 
 	// use httpS to keep all things secure,
 	// the second phase of CONNECT also uses this.
-	url := fmt.Sprintf("https://%s.appspot.com/http", self.Env.AppSpot)
-	// for debug
-	if self.Env.AppSpot == "debug" {
-		url = "http://localhost:8080/http"
-	}
+	url := fmt.Sprintf("%s/http", self.Env.Remote)
 
 	// post client request as body data
 	resp, err := http.Post(url, "application/data", &buf)

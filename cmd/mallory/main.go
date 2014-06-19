@@ -18,18 +18,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Printf("Listen and serve on %s\n", env.Addr)
+	log.Printf("Listen and serve HTTP proxy on %s\n", env.Addr)
 	log.Printf("\tEngine: %s\n", env.Engine)
 	if env.Engine == "gae" {
-		log.Printf("\tAppSpot: %s\n", env.AppSpot)
+		log.Printf("\tRemote GAE application server: %s\n", env.Remote)
+	} else if env.Engine == "socks" {
+		log.Printf("\tRemote SOCKS proxy server: %s\n", env.Remote)
+	} else if env.Engine == "ssh" {
+		log.Printf("\tRemote SSH server: %s\n", env.Remote)
 	}
 
 	if env.PAC != "" && mallory.IsExist(env.PAC) {
 		log.Printf("\tService: PAC file at http://%s/pac\n", env.Addr)
 	}
 
-	if env.SocksProxy != "" {
-		log.Printf("\tSocks Proxy: %s\n", env.SocksProxy)
-	}
 	log.Fatal(http.ListenAndServe(env.Addr, srv))
 }

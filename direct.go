@@ -9,11 +9,15 @@ import (
 )
 
 // Direct fetcher from the host of proxy
-type EngineDirect struct{}
+type EngineDirect struct {
+	Tr *http.Transport
+}
 
 // Create and initialize
 func CreateEngineDirect(e *Env) (*EngineDirect, error) {
-	return &EngineDirect{}, nil
+	return &EngineDirect{
+		Tr: &http.Transport{Dial: net.Dial},
+	}, nil
 }
 
 // Data flow:
@@ -32,7 +36,7 @@ func (self *EngineDirect) Serve(s *Session) {
 	// Client.Do is different from DefaultTransport.RoundTrip ...
 	// Client.Do will change some part of request as a new request of the server.
 	// The underlying RoundTrip never changes anything of the request.
-	resp, err := http.DefaultTransport.RoundTrip(r)
+	resp, err := self.Tr.RoundTrip(r)
 	if err != nil {
 		s.Error("RoundTrip: %s", err.Error())
 		return
@@ -81,7 +85,7 @@ func (self *EngineDirect) Connect(s *Session) {
 	defer src.Close()
 
 	// connect the remote client directly
-	dst, err := net.Dial("tcp", r.URL.Host)
+	dst, err := self.Tr.Dial("tcp", r.URL.Host)
 	if err != nil {
 		s.Error("Dial: %s", err.Error())
 		return

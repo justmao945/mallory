@@ -19,15 +19,17 @@ const (
 type Env struct {
 	// work space, default is $HOME/.mallory
 	Work string
-	// local addr to listen and serve, default is 127.0.0.1:18087
+	// local addr to listen and serve, default is 127.0.0.1:1315
 	Addr string
-	// remote engine to be used, "gae" or "direct"(default)
+	// remote engine to be used, "direct"(default), "gae", "socks", or "ssh"
 	Engine string
-	// GAE application ID, only valid when the engine is "gae"
-	// e.g. kill-me-baby of http://kill-me-baby.appspot.com
-	AppSpot string
-	// url of socks proxy, only valid when the engine is SocksToHttp
-	SocksProxy string
+	// 1) GAE application URL, only valid when the engine is "gae"
+	//    e.g. https://kill-me-baby.appspot.com
+	// 2) URL of socks proxy, only valid when the engine is "socks"
+	//    e.g. socks5://localhost:1314
+	// 3) URL of ssh server, only valid when the engine is "ssh"
+	//    e.g. ssh://user:passwd@192.168.1.1:1122
+	Remote string
 	// > http://www.akadia.com/services/ssh_test_certificate.html
 	// > http://mitmproxy.org/doc/ssl.html
 	// RSA private key file and self-signed root certificate file
@@ -37,8 +39,8 @@ type Env struct {
 	// - Self-signed root certificate file, need input some X.509 attributes
 	//   such as Country Name, Comman Name etc.
 	//      openssl req -new -x509 -days 365 -key mollory.key -out mallory.crt
-	Key  string // mallory.key
-	Cert string // mallory.crt
+	Key  string // mallory.key, only valid when engine is "gae"
+	Cert string // mallory.crt, only valid when engine is "gae"
 	// pac file path
 	PAC string
 	// terminal helper, test the default logger(os.Stderr) is terminal or not
@@ -47,17 +49,15 @@ type Env struct {
 
 // Prepare flags and env
 func (self *Env) Parse() error {
-	flag.StringVar(&self.Addr, "addr", "127.0.0.1:18087", "Mallory server address, Host:Port")
-	// -appsopt=debug to connect the localhost server for debug
-	flag.StringVar(&self.AppSpot, "appspot", "oribe-yasuna", "GAE application ID, only valid when engine is gae")
-	flag.StringVar(&self.Engine, "engine", "direct", `Mallory engine, "direct", "s2h" or "gae"`)
-	flag.StringVar(&self.SocksProxy, "socks_proxy", "socks5://localhost:1314", "SOCKS5 proxy URL, only valid when engine is s2h")
-	flag.StringVar(&self.Work, "work", path.Join("$HOME", ".mallory"), "Work directory for mallory")
+	flag.StringVar(&self.Addr, "addr", "127.0.0.1:1315", "mallory server address")
+	flag.StringVar(&self.Engine, "engine", "direct", `mallory engine, "direct", "gae", "socks" or "ssh"`)
+	flag.StringVar(&self.Remote, "remote", "", "remote server address for different engines")
+	flag.StringVar(&self.Work, "work", path.Join("$HOME", ".mallory"), "working directory for mallory")
 
 	flag.Parse()
 
-	if self.Engine != "gae" && self.Engine != "direct" && self.Engine != "s2h" {
-		return errors.New(`engine should be "direct", "s2h" or "gae"`)
+	if self.Engine != "direct" && self.Engine != "gae" && self.Engine != "socks" && self.Engine != "ssh" {
+		return errors.New(`engine should be "direct", "gae", "socks" or "ssh"`)
 	}
 
 	// expand env vars for paths
