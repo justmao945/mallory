@@ -1,7 +1,8 @@
 // proxy auto-config template
+// more powerful pac https://github.com/clowwindy/gfwlist2pac
 
 var direct = 'DIRECT';
-var http_proxy = 'PROXY 127.0.0.1:18087; DIRECT';
+var http_proxy = 'SOCKS 127.0.0.1:1314; PROXY 127.0.0.1:1315; DIRECT';
 
 var domains =
 {
