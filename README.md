@@ -1,15 +1,16 @@
 mallory
 =============
 
-Yet another http proxy written in golang, including direct and GAE fetcher
+Yet another http proxy written in golang, including direct, GAE, SOCKS5, and SSH fetcher.
 
 
 Status
 =============
-* Support direct fetcher, e.g. http, https...
-* Support SOCKS5 proxy to HTTP/HTTPS proxy forward.
+* Support direct fetcher that spawn links from the running machine.
 * Support GAE fetcher, only support http and https with port 443. In this mode we need to deploy fake certificates to forward https requests...
-* Simple PAC file server
+* Support SOCKS5 proxy fetcher, aka SOCKS5 to HTTP proxy translator.
+* Support SSH fetcher, aka SSH tunnel.
+* Simple PAC file server.
 
 Installation
 =============
@@ -17,30 +18,21 @@ Installation
 go get github.com/justmao945/mallory/cmd/mallory
 ```
 
-Direct Engine Usage
+Engines
 =============
+### Direct
 ```sh
-# this is the default mode
+# This is the default mode, that spawns connections from the running machine.
+# Now we have the HTTP proxy on port 1315
 mallory
-2014/04/12 01:56:33 Listen and serve on 127.0.0.1:18087
+2014/04/12 01:56:33 Listen and serve HTTP proxy on 127.0.0.1:1315
 2014/04/12 01:56:33 	Engine: direct
 ```
 
-SOCKS2HTTP Engine Usage
-=============
+### GAE
 ```sh
-# Assume we have a SOCKS5 proxy at http://localhost:1314
-# e.g. ssh -D 1314 remote-server
-# Now we can use HTTP/HTTPS proxy at localhost:18087
-mallory -engine=s2h
-2014/06/17 18:57:15 Listen and serve on 127.0.0.1:18087
-2014/06/17 18:57:15 	Engine: s2h
-2014/06/17 18:57:15 	Socks Proxy: socks5://localhost:1314
-```
+# This engine spawns connections from the remote Google Application Engine.
 
-GAE Engine Usage
-=============
-```sh
 # copy config to the default work dir
 mkdir ~/.mallory && cp cfg/* ~/.mallory
 
@@ -55,12 +47,44 @@ vim gae_server/app.yaml
 goapp deploy gae_server/
 
 # this mode need to use the fake CA, default include mallory.crt and mallory.key
-mallory -engine=gae -appspot=your_app_id
+mallory -engine=gae -remote=https://your-app-id.appspot.com
 
 # or generate the private key and sign the Root CA by yourself
 openssl genrsa -out mallory.key 2048
 openssl req -new -x509 -days 365 -key mollory.key -out mallory.crt
 ```
+
+### SOCKS
+```sh
+# This engine spawns connections from the remote SOCKS proxy server,
+# a simple way to translate SOCKS proxy to HTTP proxy.
+# Assume we have a SOCKS5 proxy server at localhost and listen on port 1314
+# Now we have the HTTP proxy on port 1315
+mallory -engine=socks -remote=socks5://localhost:1314
+2014/06/19 16:39:05 Starting...
+2014/06/19 16:39:05 Listen and serve HTTP proxy on 127.0.0.1:1315
+2014/06/19 16:39:05 	Engine: socks
+2014/06/19 16:39:05 	Remote SOCKS proxy server: socks5://localhost:1314
+```
+
+### SSH
+```sh
+# This engine spawns connections from the remote SSH server, similar to the ssh -D command.
+# The difference between them is that:
+#   ssh -D  ==> SOCKS proxy
+#   mallory ==> HTTP proxy
+# Assume we have a ssh server on linode:22
+# Now we have the HTTP proxy on port 1315
+mallory -engine=ssh -remote=ssh://linode:22
+2014/06/19 16:45:12 Starting...
+2014/06/19 16:45:13 Listen and serve HTTP proxy on 127.0.0.1:1315
+2014/06/19 16:45:13 	Engine: ssh
+2014/06/19 16:45:13 	Remote SSH server: ssh://linode:22
+
+# Add username, password and custom port 1234
+mallory -engine=ssh -remote=ssh://user:password@linode:1234
+```
+
 
 TODO
 =============
