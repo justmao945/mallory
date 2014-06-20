@@ -19,7 +19,7 @@ func CreateEngineSOCKS(e *Env) (self *EngineSOCKS, err error) {
 	if err != nil {
 		return
 	}
-	proxyDialer, err := proxy.FromURL(proxyURL, proxy.Direct)
+	proxyDialer, err := proxy.FromURL(proxyURL, &http.DefaultTransport)
 	if err != nil {
 		return
 	}

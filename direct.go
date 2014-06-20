@@ -15,9 +15,7 @@ type EngineDirect struct {
 
 // Create and initialize
 func CreateEngineDirect(e *Env) (*EngineDirect, error) {
-	return &EngineDirect{
-		Tr: &http.Transport{Dial: net.Dial},
-	}, nil
+	return &EngineDirect{Tr: &http.DefaultTransport}, nil
 }
 
 // Data flow:
