@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/user"
+	"sync"
 )
 
 //
@@ -18,6 +19,8 @@ type EngineSSH struct {
 	Cli *ssh.Client
 	Cfg *ssh.ClientConfig
 	Dir *EngineDirect
+	// atomic Dial
+	mutex sync.RWMutex
 }
 
 // Create and initialize
@@ -76,19 +79,28 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 		return
 	}
 
+	self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
+	if err != nil {
+		return
+	}
+
 	dial := func(network, addr string) (c net.Conn, err error) {
 		for {
-			if self.Cli == nil {
-				self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
-				if err != nil {
-					return
-				}
-			}
+			// need read lock, we'll reconnect Cli if is disconnected
+			self.mutex.RLock()
 			c, err = self.Cli.Dial(network, addr)
+			self.mutex.RUnlock()
+
 			// We want to reconnect the network when disconnected.
 			// FIXME: unexported net.errClosing
 			if err != nil && err.Error() == "use of closed network connection" {
-				self.Cli = nil
+				// we change the Cli, need write lock
+				self.mutex.Lock()
+				self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
+				self.mutex.Unlock()
+				if err != nil {
+					return
+				}
 				continue
 			}
 			// do not reconnect when no error or other errors
