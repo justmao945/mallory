@@ -76,23 +76,25 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 		return
 	}
 
-	self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
-	if err != nil {
-		return
-	}
-
 	dial := func(network, addr string) (c net.Conn, err error) {
-		for i := 0; i < 3; i++ {
+		for {
+			if self.Cli == nil {
+				self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
+				if err != nil {
+					return
+				}
+			}
 			c, err = self.Cli.Dial(network, addr)
 			// We want to reconnect the network when disconnected.
 			// FIXME: unexported net.errClosing
 			if err != nil && err.Error() == "use of closed network connection" {
+				self.Cli = nil
 				continue
 			}
 			// do not reconnect when no error or other errors
 			break
 		}
-		return c, err
+		return
 	}
 
 	self.Dir = &EngineDirect{
