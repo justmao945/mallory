@@ -87,7 +87,7 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 	}
 
 	dial := func(network, addr string) (c net.Conn, err error) {
-		for {
+		for i = 0; i < 3; i++ {
 			// need read lock, we'll reconnect Cli if is disconnected
 			// use read write lock may slow down connection ?
 			self.mutex.RLock()
@@ -111,6 +111,7 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 				self.Cli.Close()
 				self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
 				if err != nil {
+					self.cntDial--
 					return
 				}
 				self.mutex.Unlock()
