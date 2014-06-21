@@ -100,7 +100,7 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 				// we may change the Cli, need write lock
 				self.mutex.Lock()
 				if self.cntDial < 0 {
-					self.cntDial = 0
+					self.cntDial = 1
 				} else {
 					self.cntDial++
 				}
