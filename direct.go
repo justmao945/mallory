@@ -3,7 +3,6 @@ package mallory
 import (
 	"io"
 	"net/http"
-	"sync"
 	"time"
 )
 
@@ -44,14 +43,15 @@ func (self *EngineDirect) Serve(s *Session) {
 	CopyHeader(w, resp)
 	w.WriteHeader(resp.StatusCode)
 
-	_, err = io.Copy(w, resp.Body)
+	n, err := io.Copy(w, resp.Body)
 	if err != nil {
 		s.Error("Copy: %s", err.Error())
 		return
 	}
 
 	d := BeautifyDuration(time.Since(start))
-	s.Info("RESPONSE %s %s", resp.Status, d)
+	ndtos := BeautifySize(n)
+	s.Info("RESPONSE %s %s in %s <-%s", r.URL.Host, resp.Status, d, ndtos)
 }
 
 // Data flow:
@@ -94,23 +94,26 @@ func (self *EngineDirect) Connect(s *Session) {
 
 	// Proxy is no need to know anything, just exchange data between the client
 	// the the remote server.
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	copyAndWait := func(w io.Writer, r io.Reader) {
-		_, err := io.Copy(w, r)
+	copyAndWait := func(w io.Writer, r io.Reader, c chan int64) {
+		n, err := io.Copy(w, r)
 		if err != nil {
 			s.Error("Copy: %s", err.Error())
 		}
-		wg.Done()
+		c <- n
 	}
-	go copyAndWait(dst, src)
-	go copyAndWait(src, dst)
+
+	// client to remote
+	stod := make(chan int64)
+	go copyAndWait(dst, src, stod)
+
+	// remote to client
+	dtos := make(chan int64)
+	go copyAndWait(src, dst, dtos)
 
 	// Generally, the remote server would keep the connection alive,
 	// so we will not close the connection until both connection recv
 	// EOF and are done!
-	wg.Wait()
-
-	s.Info("CLOSE %s", BeautifyDuration(time.Since(start)))
+	nstod, ndtos := BeautifySize(<-stod), BeautifySize(<-dtos)
+	d := BeautifyDuration(time.Since(start))
+	s.Info("CLOSE %s after %s ->%s <-%s", r.URL.Host, d, nstod, ndtos)
 }
