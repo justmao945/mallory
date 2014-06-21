@@ -27,6 +27,17 @@ func BeautifyDuration(d time.Duration) string {
 	}
 }
 
+func BeautifySize(s int64) string {
+	switch {
+	case s < 1024:
+		return strconv.FormatInt(s, 10) + "B"
+	case s < 1024*1024:
+		return strconv.FormatInt(s/1024, 10) + "KB"
+	default:
+		return strconv.FormatInt(s/1024/1024, 10) + "MB"
+	}
+}
+
 // copy and overwrite headers from r to w
 func CopyHeader(w http.ResponseWriter, r *http.Response) {
 	// copy headers
