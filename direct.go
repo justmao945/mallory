@@ -2,7 +2,6 @@ package mallory
 
 import (
 	"io"
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -15,7 +14,7 @@ type EngineDirect struct {
 
 // Create and initialize
 func CreateEngineDirect(e *Env) (*EngineDirect, error) {
-	return &EngineDirect{Tr: &http.DefaultTransport}, nil
+	return &EngineDirect{Tr: http.DefaultTransport.(*http.Transport)}, nil
 }
 
 // Data flow:
