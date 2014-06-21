@@ -89,6 +89,13 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 			if err != nil {
 				break
 			}
+			// The reason why both Cli and err are nil is that, the previous round
+			// connection is failed, which keeps self.Cli nil.
+			if self.Cli == nil && err == nil {
+				err = errors.New("network is unreachable")
+				break
+			}
+
 			// need read lock, we'll reconnect Cli if is disconnected
 			// use read write lock may slow down connection ?
 			self.mutex.RLock()
