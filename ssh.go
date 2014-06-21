@@ -105,7 +105,7 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 					self.cntDial++
 				}
 				if self.cntDial > 1 {
-					// someone have try to reconnect, skip
+					// someone already tried to reconnect, skip
 					continue
 				}
 				self.Cli.Close()
