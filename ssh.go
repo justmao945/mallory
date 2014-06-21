@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/user"
 	"sync"
-	"sync/atomic"
 )
 
 //
@@ -21,8 +20,7 @@ type EngineSSH struct {
 	Cfg *ssh.ClientConfig
 	Dir *EngineDirect
 	// atomic Dial
-	mutex   sync.RWMutex
-	cntDial int64
+	mutex sync.RWMutex
 }
 
 // Create and initialize
@@ -87,11 +85,15 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 	}
 
 	dial := func(network, addr string) (c net.Conn, err error) {
-		for i = 0; i < 3; i++ {
+		for i := 0; i < 3; i++ {
+			if err != nil {
+				break
+			}
 			// need read lock, we'll reconnect Cli if is disconnected
 			// use read write lock may slow down connection ?
 			self.mutex.RLock()
 			c, err = self.Cli.Dial(network, addr)
+			saveCli := self.Cli
 			self.mutex.RUnlock()
 
 			// We want to reconnect the network when disconnected.
@@ -99,27 +101,13 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 			if err != nil && err.Error() == "use of closed network connection" {
 				// we may change the Cli, need write lock
 				self.mutex.Lock()
-				if self.cntDial < 0 {
-					self.cntDial = 1
-				} else {
-					self.cntDial++
-				}
-				if self.cntDial > 1 {
-					// someone already tried to reconnect, skip
-					continue
-				}
-				self.Cli.Close()
-				self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
-				if err != nil {
-					self.cntDial--
-					return
+				if saveCli == self.Cli {
+					self.Cli.Close()
+					self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
 				}
 				self.mutex.Unlock()
 				continue
-			} else {
-				atomic.AddInt64(&self.cntDial, -1)
 			}
-
 			// do not reconnect when no error or other errors
 			break
 		}
