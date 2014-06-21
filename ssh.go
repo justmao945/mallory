@@ -85,22 +85,38 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 	}
 
 	dial := func(network, addr string) (c net.Conn, err error) {
-		for {
+		// FIXME: unexported net.errClosing
+		errClosing := errors.New("use of closed network connection")
+
+		for i := 0; i < 3; i++ {
+			if err != nil {
+				// stop when ssh.Dial failed
+				break
+			}
 			// need read lock, we'll reconnect Cli if is disconnected
+			// use read write lock may slow down connection ?
 			self.mutex.RLock()
-			c, err = self.Cli.Dial(network, addr)
+			saveCli := self.Cli
+			if self.Cli != nil {
+				c, err = self.Cli.Dial(network, addr)
+			} else {
+				// The reason why both Cli and err are nil is that, the previous round
+				// connection is failed, which keeps self.Cli nil.
+				err = errClosing
+			}
 			self.mutex.RUnlock()
 
 			// We want to reconnect the network when disconnected.
-			// FIXME: unexported net.errClosing
-			if err != nil && err.Error() == "use of closed network connection" {
-				// we change the Cli, need write lock
+			if err != nil && err.Error() == errClosing.Error() {
+				// we may change the Cli, need write lock
 				self.mutex.Lock()
-				self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
-				self.mutex.Unlock()
-				if err != nil {
-					return
+				if saveCli == self.Cli {
+					if self.Cli != nil {
+						self.Cli.Close()
+					}
+					self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
 				}
+				self.mutex.Unlock()
 				continue
 			}
 			// do not reconnect when no error or other errors
