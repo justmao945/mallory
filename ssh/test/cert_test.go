@@ -10,7 +10,7 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"code.google.com/p/go.crypto/ssh"
+	"github.com/justmao945/mallory/ssh"
 )
 
 func TestCertLogin(t *testing.T) {

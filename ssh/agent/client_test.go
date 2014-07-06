@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"testing"
 
-	"code.google.com/p/go.crypto/ssh"
+	"github.com/justmao945/mallory/ssh"
 )
 
 func startAgent(t *testing.T) (client Agent, socket string, cleanup func()) {

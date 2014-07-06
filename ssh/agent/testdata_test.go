@@ -12,8 +12,8 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	"code.google.com/p/go.crypto/ssh"
-	"code.google.com/p/go.crypto/ssh/testdata"
+	"github.com/justmao945/mallory/ssh"
+	"github.com/justmao945/mallory/ssh/testdata"
 )
 
 var (

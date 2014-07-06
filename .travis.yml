@@ -1,0 +1,19 @@
+language: go
+
+go:
+  - 1.2
+  - 1.3
+  - tip
+
+install:
+  - go get github.com/justmao945/mallory/cmd/mallory
+
+# TODO: add test mallory and gae_server
+script: go test -v ./ssh && go test -v ./proxy
+
+notifications:
+  email:
+    recipients:
+      - justmao945@gmail.com
+    on_success: change
+    on_failure: always

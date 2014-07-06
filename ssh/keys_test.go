@@ -17,7 +17,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.google.com/p/go.crypto/ssh/testdata"
+	"github.com/justmao945/mallory/ssh/testdata"
 )
 
 func rawKey(pub PublicKey) interface{} {

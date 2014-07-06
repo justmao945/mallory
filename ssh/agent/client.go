@@ -24,7 +24,7 @@ import (
 	"math/big"
 	"sync"
 
-	"code.google.com/p/go.crypto/ssh"
+	"github.com/justmao945/mallory/ssh"
 )
 
 // Agent represents the capabilities of an ssh-agent.
