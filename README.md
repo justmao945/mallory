@@ -4,7 +4,7 @@ mallory
 Yet another http proxy written in golang, including direct, GAE, SOCKS5, and SSH fetcher.
 
 
-Status
+Status  [![Build Status](https://travis-ci.org/justmao945/mallory.svg?branch=master)](https://travis-ci.org/justmao945/mallory)
 =============
 * Support direct fetcher that spawn links from the running machine.
 * Support GAE fetcher, only support http and https with port 443. In this mode we need to deploy fake certificates to forward https requests...
