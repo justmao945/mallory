@@ -49,12 +49,6 @@ func CreateServer(e *Env) (self *Server, err error) {
 		Services: make(map[string]Service),
 	}
 
-	// prepare dirs
-	err = os.MkdirAll(e.Work, 0755)
-	if err != nil && !os.IsExist(err) {
-		return
-	}
-
 	// create engines
 	if e.Engine == "gae" {
 		self.Engine, err = CreateEngineGAE(e)
