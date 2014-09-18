@@ -3,7 +3,6 @@ package mallory
 
 import (
 	"net/http"
-	"os"
 	"sync/atomic"
 )
 

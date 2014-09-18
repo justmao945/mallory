@@ -22,7 +22,7 @@ func CreateServicePAC(e *Env) (self *ServicePAC, err error) {
 
 // main handler, read file and response, please don't use cache
 func (self *ServicePAC) Serve(s *Session) {
-	pac, err = ioutil.ReadFile(self.Url.Path)
+	pac, err := ioutil.ReadFile(self.Url.Path)
 	if err != nil {
 		s.ResponseWriter.WriteHeader(http.StatusNotFound)
 		s.Error("RESPONSE %s", StatusText(http.StatusNotFound))
