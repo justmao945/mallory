@@ -46,12 +46,12 @@ vim gae_server/app.yaml
 # deploy it with go_appengine, https://developers.google.com/appengine/downloads
 goapp deploy gae_server/
 
-# this mode need to use the fake CA, default include mallory.crt and mallory.key
+# this mode need to use the fake CA, default include crt and key
 mallory -engine=gae -remote=https://your-app-id.appspot.com
 
 # or generate the private key and sign the Root CA by yourself
-openssl genrsa -out mallory.key 2048
-openssl req -new -x509 -days 365 -key mollory.key -out mallory.crt
+openssl genrsa -out key 2048
+openssl req -new -x509 -days 365 -key key -out crt
 ```
 
 ### SOCKS

@@ -3,7 +3,6 @@ package mallory
 
 import (
 	"net/http"
-	"os"
 	"sync/atomic"
 )
 
@@ -47,12 +46,6 @@ func CreateServer(e *Env) (self *Server, err error) {
 	self = &Server{
 		Env:      e,
 		Services: make(map[string]Service),
-	}
-
-	// prepare dirs
-	err = os.MkdirAll(e.Work, 0755)
-	if err != nil && !os.IsExist(err) {
-		return
 	}
 
 	// create engines

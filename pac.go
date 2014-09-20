@@ -10,37 +10,26 @@ import (
 type ServicePAC struct {
 	// Global config
 	Env *Env
-	// the PAC file content
-	PAC []byte
+	Url *url.URL
 }
 
 // create and init
 func CreateServicePAC(e *Env) (self *ServicePAC, err error) {
 	self = &ServicePAC{Env: e}
-
-	url, err := url.Parse(e.PAC)
-	if err != nil { // treat as a file path
-		self.PAC, err = ioutil.ReadFile(e.PAC)
-		return
-	}
-
-	if url.Scheme == "" || url.Scheme == "file" {
-		self.PAC, err = ioutil.ReadFile(url.Path)
-		return
-	}
-
-	resp, err := http.Get(e.PAC)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-	_, err = resp.Body.Read(self.PAC)
+	self.Url, err = url.Parse(e.PAC)
 	return
 }
 
-// main handler
+// main handler, read file and response, please don't use cache
 func (self *ServicePAC) Serve(s *Session) {
-	s.ResponseWriter.Write(self.PAC)
+	pac, err := ioutil.ReadFile(self.Url.Path)
+	if err != nil {
+		s.ResponseWriter.WriteHeader(http.StatusNotFound)
+		s.Error("RESPONSE %s", StatusText(http.StatusNotFound))
+		return
+	}
+
+	s.ResponseWriter.Write(pac)
 	s.Info("RESPONSE %s", StatusText(http.StatusOK))
 }
 
