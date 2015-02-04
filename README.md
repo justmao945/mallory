@@ -3,7 +3,7 @@ mallory
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/justmao945/mallory?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-Yet another http proxy written in golang, including direct, GAE, SOCKS5, and SSH fetcher.
+Yet another http proxy written in golang, including direct, GAE, SOCKS5, and SSH fetchers.
 
 
 Status  [![Build Status](https://travis-ci.org/justmao945/mallory.svg?branch=master)](https://travis-ci.org/justmao945/mallory)
