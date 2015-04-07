@@ -13,51 +13,58 @@ import (
 )
 
 //
-type EngineSSH struct {
-	Env *Env
+type SSH struct {
+	// global config file
+	Cfg *Config
+	// connect URL
 	URL *url.URL
-	Cli *ssh.Client
-	Cfg *ssh.ClientConfig
-	Dir *EngineDirect
+	// SSH client
+	Client *ssh.Client
+	// SSH client config
+	CliCfg *ssh.ClientConfig
+	// direct fetcher
+	Direct *Direct
 	// atomic Dial
 	mutex sync.RWMutex
 }
 
 // Create and initialize
-func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
-	self = &EngineSSH{
-		Env: e,
-		Cfg: &ssh.ClientConfig{},
+func NewSSH(c *Config) (self *SSH, err error) {
+	self = &SSH{
+		Cfg:    c,
+		CliCfg: &ssh.ClientConfig{},
 	}
 	// e.g.  ssh://user:passwd@192.168.1.1:1122
-	self.URL, err = url.Parse(e.Remote)
+	self.URL, err = url.Parse(c.File.RemoteServer)
 	if err != nil {
 		return
 	}
 
 	if self.URL.User != nil {
-		self.Cfg.User = self.URL.User.Username()
+		self.CliCfg.User = self.URL.User.Username()
 	} else {
 		u, err := user.Current()
 		if err != nil {
-			return self, err
+			return
 		}
 		// u.Name is the full name, should not be used
-		self.Cfg.User = u.Username
+		self.CliCfg.User = u.Username
 	}
 
 	// 1) try RSA keyring first
 	for {
-		id_rsa := os.ExpandEnv("$HOME/.ssh/id_rsa")
+		id_rsa := os.ExpandEnv(c.File.PrivateKey)
 		pem, err := ioutil.ReadFile(id_rsa)
 		if err != nil {
+			logger.Printf("Can't read private key file: %s\n", c.File.PrivateKey)
 			break
 		}
 		signer, err := ssh.ParsePrivateKey(pem)
 		if err != nil {
+			logger.Printf("Can't parse private key file %s\n", c.File.PrivateKey)
 			break
 		}
-		self.Cfg.Auth = append(self.Cfg.Auth, ssh.PublicKeys(signer))
+		self.CliCfg.Auth = append(self.CliCfg.Auth, ssh.PublicKeys(signer))
 		// stop !!
 		break
 	}
@@ -67,19 +74,19 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 			break
 		}
 		if pass, ok := self.URL.User.Password(); ok {
-			self.Cfg.Auth = append(self.Cfg.Auth, ssh.Password(pass))
+			self.CliCfg.Auth = append(self.CliCfg.Auth, ssh.Password(pass))
 		}
 		// stop here!!
 		break
 	}
 
-	if len(self.Cfg.Auth) == 0 {
+	if len(self.CliCfg.Auth) == 0 {
 		//TODO: keyboard intercative
 		err = errors.New("Invalid auth method, please add password or generate ssh keys")
 		return
 	}
 
-	self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
+	self.Client, err = ssh.Dial("tcp", self.URL.Host, self.CliCfg)
 	if err != nil {
 		return
 	}
@@ -96,9 +103,9 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 			// need read lock, we'll reconnect Cli if is disconnected
 			// use read write lock may slow down connection ?
 			self.mutex.RLock()
-			saveCli := self.Cli
-			if self.Cli != nil {
-				c, err = self.Cli.Dial(network, addr)
+			saveClient := self.Client
+			if self.Client != nil {
+				c, err = self.Client.Dial(network, addr)
 			} else {
 				// The reason why both Cli and err are nil is that, the previous round
 				// connection is failed, which keeps self.Cli nil.
@@ -110,11 +117,11 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 			if err != nil && err.Error() == errClosing.Error() {
 				// we may change the Cli, need write lock
 				self.mutex.Lock()
-				if saveCli == self.Cli {
-					if self.Cli != nil {
-						self.Cli.Close()
+				if saveClient == self.Client {
+					if self.Client != nil {
+						self.Client.Close()
 					}
-					self.Cli, err = ssh.Dial("tcp", self.URL.Host, self.Cfg)
+					self.Client, err = ssh.Dial("tcp", self.URL.Host, self.CliCfg)
 				}
 				self.mutex.Unlock()
 				continue
@@ -125,16 +132,16 @@ func CreateEngineSSH(e *Env) (self *EngineSSH, err error) {
 		return
 	}
 
-	self.Dir = &EngineDirect{
+	self.Direct = &EngineDirect{
 		Tr: &http.Transport{Dial: dial},
 	}
 	return
 }
 
-func (self *EngineSSH) Serve(s *Session) {
-	self.Dir.Serve(s)
+func (self *SSH) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	self.Direct.ServeHTTP(w, r)
 }
 
-func (self *EngineSSH) Connect(s *Session) {
-	self.Dir.Connect(s)
+func (self *SSH) Connect(w http.ResponseWriter, r *http.Request) {
+	self.Direct.Connect(w, r)
 }

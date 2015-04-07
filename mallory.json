@@ -1,4 +1,5 @@
 {
+  "id_rsa": "$HOME/.ssh/id_rsa",
   "local": "127.0.0.1:1315",
   "remote": "ssh://user@linode:22",
   "blocked": [

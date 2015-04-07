@@ -5,4 +5,5 @@ import (
 	"os"
 )
 
-var logger = log.NewLogger(os.Stdout, "mallory: ", log.Lshortfile|log.LstdFlags)
+// global logger
+var L = log.NewLogger(os.Stdout, "mallory: ", log.Lshortfile|log.LstdFlags)

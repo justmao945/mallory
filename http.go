@@ -3,12 +3,6 @@ package mallory
 import (
 	"fmt"
 	"net/http"
-	"os"
-	"runtime"
-	"strconv"
-	"syscall"
-	"time"
-	"unsafe"
 )
 
 // copy and overwrite headers from r to w
