@@ -6,4 +6,4 @@ import (
 )
 
 // global logger
-var L = log.NewLogger(os.Stdout, "mallory: ", log.Lshortfile|log.LstdFlags)
+var L = log.New(os.Stdout, "mallory: ", log.Lshortfile|log.LstdFlags)

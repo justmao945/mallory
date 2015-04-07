@@ -1,36 +1,27 @@
 package main
 
 import (
-	"github.com/justmao945/mallory"
-	"log"
+	"flag"
+	m "github.com/justmao945/mallory"
 	"net/http"
 )
 
+var L = m.L
+
 func main() {
-	var env mallory.Env
-	if err := env.Parse(); err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("Starting...\n")
-	srv, err := mallory.CreateServer(&env)
+	L.Printf("Starting...\n")
+	f := flag.String("config", "$HOME/.mallory.json", "config file")
+	flag.Parse()
+	c, err := m.NewConfig(*f)
 	if err != nil {
-		log.Fatal(err)
+		L.Fatalln(err)
+	}
+	srv, err := m.NewServer(c)
+	if err != nil {
+		L.Fatalln(err)
 	}
 
-	log.Printf("Listen and serve HTTP proxy on %s\n", env.Addr)
-	log.Printf("\tEngine: %s\n", env.Engine)
-	if env.Engine == "gae" {
-		log.Printf("\tRemote GAE application server: %s\n", env.Remote)
-	} else if env.Engine == "socks" {
-		log.Printf("\tRemote SOCKS proxy server: %s\n", env.Remote)
-	} else if env.Engine == "ssh" {
-		log.Printf("\tRemote SSH server: %s\n", env.Remote)
-	}
-
-	if env.PAC != "" && mallory.IsExist(env.PAC) {
-		log.Printf("\tService: PAC file at http://%s/pac\n", env.Addr)
-	}
-
-	log.Fatal(http.ListenAndServe(env.Addr, srv))
+	L.Printf("Listen and serve HTTP proxy on %s\n", c.File.LocalServer)
+	L.Printf("\tRemote SSH server: %s\n", c.File.RemoteServer)
+	L.Fatalln(http.ListenAndServe(c.File.LocalServer, srv))
 }

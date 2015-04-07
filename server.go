@@ -28,6 +28,7 @@ func NewServer(c *Config) (self *Server, err error) {
 		Direct: NewDirect(),
 		SSH:    ssh,
 	}
+	return
 }
 
 // HTTP proxy accepts requests with following two types:
@@ -54,7 +55,7 @@ func NewServer(c *Config) (self *Server, err error) {
 //    to the remote server and copy the reponse to client.
 //
 func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	logger.Printf("%s %s %s\n", r.Method, r.RequestURI, r.Proto)
+	L.Printf("%s %s %s\n", r.Method, r.RequestURI, r.Proto)
 
 	host, _, _ := net.SplitHostPort(r.URL.Host)
 	suffix, _ := publicsuffix.PublicSuffix(host)
@@ -88,6 +89,6 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			self.Direct.Connect(w, r)
 		}
 	} else {
-		logger.Printf("%s is not a full URL path\n", r.RequestURI)
+		L.Printf("%s is not a full URL path\n", r.RequestURI)
 	}
 }

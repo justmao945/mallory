@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"os/user"
 	"sync"
 )
@@ -45,7 +44,7 @@ func NewSSH(c *Config) (self *SSH, err error) {
 	} else {
 		u, err := user.Current()
 		if err != nil {
-			return
+			return self, err
 		}
 		// u.Name is the full name, should not be used
 		self.CliCfg.User = u.Username
@@ -53,15 +52,15 @@ func NewSSH(c *Config) (self *SSH, err error) {
 
 	// 1) try RSA keyring first
 	for {
-		id_rsa := os.ExpandEnv(c.File.PrivateKey)
+		id_rsa := c.File.PrivateKey
 		pem, err := ioutil.ReadFile(id_rsa)
 		if err != nil {
-			logger.Printf("Can't read private key file: %s\n", c.File.PrivateKey)
+			L.Printf("Can't read private key file: %s\n", c.File.PrivateKey)
 			break
 		}
 		signer, err := ssh.ParsePrivateKey(pem)
 		if err != nil {
-			logger.Printf("Can't parse private key file %s\n", c.File.PrivateKey)
+			L.Printf("Can't parse private key file %s\n", c.File.PrivateKey)
 			break
 		}
 		self.CliCfg.Auth = append(self.CliCfg.Auth, ssh.PublicKeys(signer))
@@ -132,7 +131,7 @@ func NewSSH(c *Config) (self *SSH, err error) {
 		return
 	}
 
-	self.Direct = &EngineDirect{
+	self.Direct = &Direct{
 		Tr: &http.Transport{Dial: dial},
 	}
 	return

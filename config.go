@@ -3,6 +3,7 @@ package mallory
 import (
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"sort"
 )
 
@@ -29,12 +30,14 @@ func NewConfigFile(path string) (self *ConfigFile, err error) {
 	if err != nil {
 		return
 	}
+	self.PrivateKey = os.ExpandEnv(self.PrivateKey)
 	sort.Strings(self.BlockedList)
+	return
 }
 
 // test whether host is in blocked list or not
 func (self *ConfigFile) Contain(host string) bool {
-	i := self.BlockedList.Search(host)
+	i := sort.SearchStrings(self.BlockedList, host)
 	return i < len(self.BlockedList) && self.BlockedList[i] == host
 }
 
@@ -47,13 +50,15 @@ type Config struct {
 }
 
 func NewConfig(path string) (self *Config, err error) {
-	self = Config{Path: path}
+	self = &Config{Path: os.ExpandEnv(path)}
 	err = self.Load()
+	return
 }
 
 // reload config file
 func (self *Config) Load() (err error) {
-	err, self.File = NewConfigFile(self.Path)
+	self.File, err = NewConfigFile(self.Path)
+	return
 }
 
 // test whether host is in blocked list or not
