@@ -1,0 +1,8 @@
+{
+  "local": "127.0.0.1:1315",
+  "remote": "ssh://user@linode:22",
+  "blocked": [
+    "google.com",
+    "twitter.com",
+  ]
+}

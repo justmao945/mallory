@@ -2,7 +2,7 @@ package mallory
 
 import (
 	"errors"
-	"github.com/justmao945/mallory/ssh"
+	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"net"
 	"net/http"
