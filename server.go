@@ -55,13 +55,18 @@ func NewServer(c *Config) (self *Server, err error) {
 //    to the remote server and copy the reponse to client.
 //
 func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	L.Printf("%s %s %s\n", r.Method, r.RequestURI, r.Proto)
-
 	host, _, _ := net.SplitHostPort(r.URL.Host)
-	suffix, _ := publicsuffix.PublicSuffix(host)
+	suffix, _ := publicsuffix.EffectiveTLDPlusOne(host)
+	blocked := self.Cfg.Contain(suffix)
+	engine := "dir"
+	if blocked {
+		engine = "ssh"
+	}
+
+	L.Printf("[%s] %s %s %s\n", engine, r.Method, r.RequestURI, r.Proto)
 
 	if r.Method == "CONNECT" {
-		if self.Cfg.Contain(suffix) {
+		if blocked {
 			self.SSH.Connect(w, r)
 		} else {
 			self.Direct.Connect(w, r)
@@ -83,10 +88,10 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		//   be communicated by proxies over further connections.
 		r.Header.Del("Connection")
 
-		if self.Cfg.Contain(suffix) {
-			self.SSH.Connect(w, r)
+		if blocked {
+			self.SSH.ServeHTTP(w, r)
 		} else {
-			self.Direct.Connect(w, r)
+			self.Direct.ServeHTTP(w, r)
 		}
 	} else {
 		L.Printf("%s is not a full URL path\n", r.RequestURI)
