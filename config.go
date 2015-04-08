@@ -81,6 +81,9 @@ func (self *Config) Load() (err error) {
 	// first time to load
 	L.Printf("Loading: %s\n", self.Path)
 	self.File, err = NewConfigFile(self.Path)
+	if err != nil {
+		return
+	}
 
 	// watching
 	err = self.Watcher.Add(self.Path)
@@ -108,6 +111,7 @@ func (self *Config) Load() (err error) {
 			}
 		}
 	}()
+
 	return
 }
 

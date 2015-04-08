@@ -10,7 +10,7 @@ var L = m.L
 
 func main() {
 	L.Printf("Starting...\n")
-	f := flag.String("config", "$HOME/.mallory.json", "config file")
+	f := flag.String("config", "$HOME/.config/mallory.json", "config file")
 	flag.Parse()
 	c, err := m.NewConfig(*f)
 	if err != nil {
