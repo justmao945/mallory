@@ -55,12 +55,12 @@ func NewSSH(c *Config) (self *SSH, err error) {
 		id_rsa := c.File.PrivateKey
 		pem, err := ioutil.ReadFile(id_rsa)
 		if err != nil {
-			L.Printf("Can't read private key file: %s\n", c.File.PrivateKey)
+			L.Printf("ReadFile %s failed:%s\n", c.File.PrivateKey, err)
 			break
 		}
 		signer, err := ssh.ParsePrivateKey(pem)
 		if err != nil {
-			L.Printf("Can't parse private key file %s\n", c.File.PrivateKey)
+			L.Printf("ParsePrivateKey %s failed:%s\n", c.File.PrivateKey, err)
 			break
 		}
 		self.CliCfg.Auth = append(self.CliCfg.Auth, ssh.PublicKeys(signer))

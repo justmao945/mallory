@@ -79,6 +79,7 @@ func (self *Config) Load() (err error) {
 	self.loaded = true
 
 	// first time to load
+	L.Printf("Loading: %s\n", self.Path)
 	self.File, err = NewConfigFile(self.Path)
 
 	// watching
@@ -94,16 +95,16 @@ func (self *Config) Load() (err error) {
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					file, err := NewConfigFile(self.Path)
 					if err != nil {
-						L.Printf("reload config file failed for: %s\n", err)
+						L.Printf("Reload %s failed: %s\n", self.Path, err)
 					} else {
-						L.Printf("reload config file: %s\n", self.Path)
+						L.Printf("Reload %s\n", self.Path)
 						self.mutex.Lock()
 						self.File = file
 						self.mutex.Unlock()
 					}
 				}
 			case err := <-self.Watcher.Errors:
-				L.Printf("watching config file failed for: %s\n", err)
+				L.Printf("Watching failed: %s\n", err)
 			}
 		}
 	}()
