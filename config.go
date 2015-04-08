@@ -36,7 +36,7 @@ func NewConfigFile(path string) (self *ConfigFile, err error) {
 }
 
 // test whether host is in blocked list or not
-func (self *ConfigFile) Contain(host string) bool {
+func (self *ConfigFile) Blocked(host string) bool {
 	i := sort.SearchStrings(self.BlockedList, host)
 	return i < len(self.BlockedList) && self.BlockedList[i] == host
 }
@@ -62,6 +62,6 @@ func (self *Config) Load() (err error) {
 }
 
 // test whether host is in blocked list or not
-func (self *Config) Contain(host string) bool {
-	return self.File.Contain(host)
+func (self *Config) Blocked(host string) bool {
+	return self.File.Blocked(host)
 }
