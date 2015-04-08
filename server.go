@@ -2,87 +2,66 @@
 package mallory
 
 import (
+	"golang.org/x/net/publicsuffix"
 	"net/http"
-	"sync/atomic"
+	"sync"
 )
 
-// The method to fetch data from remote server or connect to another
-// proxy server or something...
-type Engine interface {
-	// normal http methods except CONNECT
-	// all operations in this function should be thread safe
-	Serve(*Session)
-	// handle CONNECT method, a secure tunnel
-	// all operations in this function should be thread safe
-	// Tunneling TCP based protocols through Web proxy servers
-	//  - http://www.web-cache.com/Writings/Internet-Drafts/draft-luotonen-web-proxy-tunneling-01.txt
-	Connect(*Session)
-}
-
-// Extra services provied by server
-type Service interface {
-	// serve a http request
-	Serve(*Session)
-	// the path served by this service, e.g. /pac
-	Path() string
-}
-
-// The main proxy http handler
 type Server struct {
-	// Global config
-	Env *Env
-	// different fetch engine can be adapted to the server
-	Engine Engine
-	// services provided
-	Services map[string]Service
-	// alive connections
-	CountAlive int64
-	// used to generate unique ID for sessions
-	idZygote int64
+	// config file
+	Cfg *Config
+	// direct fetcher
+	Direct *Direct
+	// ssh fetcher, to connect remote proxy server
+	SSH *SSH
+	// a cache
+	BlockedHosts map[string]bool
+	// for serve http
+	mutex sync.RWMutex
 }
 
 // Create and intialize
-func CreateServer(e *Env) (self *Server, err error) {
+func NewServer(c *Config) (self *Server, err error) {
+	ssh, err := NewSSH(c)
+	if err != nil {
+		return
+	}
+
 	self = &Server{
-		Env:      e,
-		Services: make(map[string]Service),
+		Cfg:          c,
+		Direct:       NewDirect(),
+		SSH:          ssh,
+		BlockedHosts: make(map[string]bool),
 	}
-
-	// create engines
-	if e.Engine == "gae" {
-		self.Engine, err = CreateEngineGAE(e)
-	} else if e.Engine == "socks" {
-		self.Engine, err = CreateEngineSOCKS(e)
-	} else if e.Engine == "ssh" {
-		self.Engine, err = CreateEngineSSH(e)
-	} else {
-		self.Engine, err = CreateEngineDirect(e)
-	}
-
-	// add services
-	if IsExist(e.PAC) {
-		srv, err := CreateServicePAC(e)
-		if err != nil {
-			return self, err
-		}
-		self.Reg(srv)
-	}
-
-	// dummy favicon service
-	self.Reg(&ServiceFavicon{})
-
 	return
 }
 
-// Return a new unique ID, thread safe
-func (self *Server) NewID() int64 {
-	return atomic.AddInt64(&self.idZygote, 1)
-}
+func (self *Server) Blocked(host string) bool {
+	blocked, cached := false, false
+	host = HostOnly(host)
+	self.mutex.RLock()
+	if self.BlockedHosts[host] {
+		blocked = true
+		cached = true
+	}
+	self.mutex.RUnlock()
 
-// Register a service to the server, later service will overwrite
-// the previous one if both of them have the same service path
-func (self *Server) Reg(s Service) {
-	self.Services[s.Path()] = s
+	if !blocked {
+		tld, _ := publicsuffix.EffectiveTLDPlusOne(host)
+		blocked = self.Cfg.Blocked(tld)
+	}
+
+	if !blocked {
+		suffix, _ := publicsuffix.PublicSuffix(host)
+		blocked = self.Cfg.Blocked(suffix)
+	}
+
+	if blocked && !cached {
+		self.mutex.Lock()
+		self.BlockedHosts[host] = true
+		self.mutex.Unlock()
+	}
+	return blocked
 }
 
 // HTTP proxy accepts requests with following two types:
@@ -109,17 +88,15 @@ func (self *Server) Reg(s Service) {
 //    to the remote server and copy the reponse to client.
 //
 func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s := NewSession(self, w, r)
-	atomic.AddInt64(&self.CountAlive, 1)
+	blocked := self.Blocked(r.URL.Host)
+	L.Printf("[%v] %s %s %s\n", blocked, r.Method, r.RequestURI, r.Proto)
 
-	s.Info("%s %s %s", r.Method, r.RequestURI, r.Proto)
-
-	// lookup service by path
-	srv, ok := self.Services[r.RequestURI]
-	if ok {
-		srv.Serve(s)
-	} else if r.Method == "CONNECT" {
-		self.Engine.Connect(s)
+	if r.Method == "CONNECT" {
+		if blocked {
+			self.SSH.Connect(w, r)
+		} else {
+			self.Direct.Connect(w, r)
+		}
 	} else if r.URL.IsAbs() {
 		// This is an error if is not empty on Client
 		r.RequestURI = ""
@@ -136,9 +113,12 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		//   options that are desired for that particular connection and MUST NOT
 		//   be communicated by proxies over further connections.
 		r.Header.Del("Connection")
-
-		self.Engine.Serve(s)
+		if blocked {
+			self.SSH.ServeHTTP(w, r)
+		} else {
+			self.Direct.ServeHTTP(w, r)
+		}
+	} else {
+		L.Printf("%s is not a full URL path\n", r.RequestURI)
 	}
-
-	atomic.AddInt64(&self.CountAlive, -1)
 }
