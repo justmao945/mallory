@@ -9,7 +9,7 @@ install:
   - go get github.com/justmao945/mallory/cmd/mallory
 
 # TODO: add test mallory
-script: go test -v ./ssh
+script:
 
 notifications:
   email:
