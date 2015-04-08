@@ -5,6 +5,7 @@ import (
 	"gopkg.in/fsnotify.v1"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 )
@@ -85,8 +86,10 @@ func (self *Config) Load() (err error) {
 		return
 	}
 
-	// watching
-	err = self.Watcher.Add(self.Path)
+	// Watching the whole directory instead of the individual path.
+	// Because many editors won't write to file directly, they copy
+	// the original one and rename it.
+	err = self.Watcher.Add(filepath.Dir(self.Path))
 	if err != nil {
 		return
 	}
@@ -95,7 +98,7 @@ func (self *Config) Load() (err error) {
 		for {
 			select {
 			case event := <-self.Watcher.Events:
-				if event.Op&fsnotify.Write == fsnotify.Write {
+				if event.Op&fsnotify.Write == fsnotify.Write && event.Name == self.Path {
 					file, err := NewConfigFile(self.Path)
 					if err != nil {
 						L.Printf("Reload %s failed: %s\n", self.Path, err)

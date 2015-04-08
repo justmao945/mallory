@@ -9,9 +9,10 @@ import (
 var L = m.L
 
 func main() {
-	L.Printf("Starting...\n")
 	f := flag.String("config", "$HOME/.config/mallory.json", "config file")
 	flag.Parse()
+
+	L.Printf("Starting...\n")
 	c, err := m.NewConfig(*f)
 	if err != nil {
 		L.Fatalln(err)
