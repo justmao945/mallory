@@ -51,6 +51,11 @@ func (self *Server) Blocked(host string) bool {
 		blocked = self.Cfg.Blocked(tld)
 	}
 
+	if !blocked {
+		suffix, _ := publicsuffix.PublicSuffix(host)
+		blocked = self.Cfg.Blocked(suffix)
+	}
+
 	if blocked && !cached {
 		self.mutex.Lock()
 		self.BlockedHosts[host] = true

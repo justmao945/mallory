@@ -2,9 +2,11 @@ package mallory
 
 import (
 	"encoding/json"
+	"gopkg.in/fsnotify.v1"
 	"io/ioutil"
 	"os"
 	"sort"
+	"sync"
 )
 
 // Memory representation for mallory.json
@@ -47,21 +49,71 @@ type Config struct {
 	Path string
 	// config file content
 	File *ConfigFile
+	// File wather
+	Watcher *fsnotify.Watcher
+	// mutex for config file
+	mutex  sync.RWMutex
+	loaded bool
 }
 
 func NewConfig(path string) (self *Config, err error) {
-	self = &Config{Path: os.ExpandEnv(path)}
+	// watch config file changes
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return
+	}
+
+	self = &Config{
+		Path:    os.ExpandEnv(path),
+		Watcher: watcher,
+	}
 	err = self.Load()
 	return
 }
 
 // reload config file
 func (self *Config) Load() (err error) {
+	if self.loaded {
+		panic("can not be reload manually")
+	}
+	self.loaded = true
+
+	// first time to load
 	self.File, err = NewConfigFile(self.Path)
+
+	// watching
+	err = self.Watcher.Add(self.Path)
+	if err != nil {
+		return
+	}
+
+	go func() {
+		for {
+			select {
+			case event := <-self.Watcher.Events:
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					file, err := NewConfigFile(self.Path)
+					if err != nil {
+						L.Printf("reload config file failed for: %s\n", err)
+					} else {
+						L.Printf("reload config file: %s\n", self.Path)
+						self.mutex.Lock()
+						self.File = file
+						self.mutex.Unlock()
+					}
+				}
+			case err := <-self.Watcher.Errors:
+				L.Printf("watching config file failed for: %s\n", err)
+			}
+		}
+	}()
 	return
 }
 
 // test whether host is in blocked list or not
 func (self *Config) Blocked(host string) bool {
-	return self.File.Blocked(host)
+	self.mutex.RLock()
+	blocked := self.File.Blocked(host)
+	self.mutex.RUnlock()
+	return blocked
 }
