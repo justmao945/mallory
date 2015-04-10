@@ -3,7 +3,10 @@
   "local": "127.0.0.1:1315",
   "remote": "ssh://jianjun@linode:22",
   "blocked": [
+    "amazonaws.com",
+    "angularjs.io",
     "angularjs.org",
+    "awsstatic.com",
     "golang.org",
     "google.com",
     "google.co.jp",
@@ -11,6 +14,7 @@
     "googleusercontent.com",
     "google-analytics.com",
     "gstatic.com",
+    "sourceforge.net",
     "twitter.com",
     "youtube.com"
   ]
