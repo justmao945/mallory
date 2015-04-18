@@ -44,3 +44,7 @@ Content:
 * Set both HTTP and HTTPS proxy to `localhost` with port `1315`
 * Set env var `http_proxy` and `https_proxy` to `localhost:1315` if in terminal
 
+
+### TODO
+* return http error when unable to dial
+* add host to list automatically when unable to dial
