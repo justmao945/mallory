@@ -17,6 +17,7 @@ func main() {
 	if err != nil {
 		L.Fatalln(err)
 	}
+	L.Println("Connecting...")
 	srv, err := m.NewServer(c)
 	if err != nil {
 		L.Fatalln(err)

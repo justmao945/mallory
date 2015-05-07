@@ -24,6 +24,7 @@ func NewDirect() *Direct {
 func (self *Direct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "CONNECT" {
 		L.Println("this function can not handle CONNECT method")
+		http.Error(w, r.Method, http.StatusMethodNotAllowed)
 		return
 	}
 	start := time.Now()
@@ -34,6 +35,7 @@ func (self *Direct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resp, err := self.Tr.RoundTrip(r)
 	if err != nil {
 		L.Printf("RoundTrip: %s\n", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
@@ -45,6 +47,7 @@ func (self *Direct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	n, err := io.Copy(w, resp.Body)
 	if err != nil {
 		L.Printf("Copy: %s\n", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -61,6 +64,7 @@ func (self *Direct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "CONNECT" {
 		L.Println("this function can only handle CONNECT method")
+		http.Error(w, r.Method, http.StatusMethodNotAllowed)
 		return
 	}
 	start := time.Now()
@@ -68,13 +72,16 @@ func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) {
 	// Use Hijacker to get the underlying connection
 	hij, ok := w.(http.Hijacker)
 	if !ok {
-		L.Println("Server does not support Hijacker")
+		s := "Server does not support Hijacker"
+		L.Println(s)
+		http.Error(w, s, http.StatusInternalServerError)
 		return
 	}
 
 	src, _, err := hij.Hijack()
 	if err != nil {
 		L.Printf("Hijack: %s\n", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer src.Close()
@@ -83,6 +90,7 @@ func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) {
 	dst, err := self.Tr.Dial("tcp", r.URL.Host)
 	if err != nil {
 		L.Printf("Dial: %s\n", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer dst.Close()
@@ -92,10 +100,11 @@ func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) {
 
 	// Proxy is no need to know anything, just exchange data between the client
 	// the the remote server.
-	copyAndWait := func(w io.Writer, r io.Reader, c chan int64) {
-		n, err := io.Copy(w, r)
+	copyAndWait := func(dst io.Writer, src io.Reader, c chan int64) {
+		n, err := io.Copy(dst, src)
 		if err != nil {
 			L.Printf("Copy: %s\n", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		c <- n
 	}
