@@ -90,7 +90,7 @@ func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) {
 	dst, err := self.Tr.Dial("tcp", r.URL.Host)
 	if err != nil {
 		L.Printf("Dial: %s\n", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		src.Write([]byte("HTTP/1.1 500 Internal Server Error\r\n\r\n"))
 		return
 	}
 	defer dst.Close()
@@ -104,7 +104,7 @@ func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) {
 		n, err := io.Copy(dst, src)
 		if err != nil {
 			L.Printf("Copy: %s\n", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			// FIXME: how to report error to dst ?
 		}
 		c <- n
 	}
