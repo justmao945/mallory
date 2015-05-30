@@ -2,8 +2,9 @@ package main
 
 import (
 	"flag"
-	m "github.com/justmao945/mallory"
 	"net/http"
+
+	m "github.com/justmao945/mallory"
 )
 
 var L = m.L
@@ -17,13 +18,22 @@ func main() {
 	if err != nil {
 		L.Fatalln(err)
 	}
-	L.Println("Connecting...")
-	srv, err := m.NewServer(c)
+
+	L.Printf("Connecting remote SSH server: %s\n", c.File.RemoteServer)
+	smart, err := m.NewServer(m.SmartSrv, c)
+	if err != nil {
+		L.Fatalln(err)
+	}
+	normal, err := m.NewServer(m.NormalSrv, c)
 	if err != nil {
 		L.Fatalln(err)
 	}
 
-	L.Printf("Listen and serve HTTP proxy on %s\n", c.File.LocalServer)
-	L.Printf("\tRemote SSH server: %s\n", c.File.RemoteServer)
-	L.Fatalln(http.ListenAndServe(c.File.LocalServer, srv))
+	go func() {
+		L.Printf("Local normal HTTP proxy: %s\n", c.File.LocalNormalServer)
+		L.Fatalln(http.ListenAndServe(c.File.LocalNormalServer, normal))
+	}()
+
+	L.Printf("Local smart HTTP proxy: %s\n", c.File.LocalSmartServer)
+	L.Fatalln(http.ListenAndServe(c.File.LocalSmartServer, smart))
 }

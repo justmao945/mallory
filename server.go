@@ -2,12 +2,20 @@
 package mallory
 
 import (
-	"golang.org/x/net/publicsuffix"
 	"net/http"
 	"sync"
+
+	"golang.org/x/net/publicsuffix"
+)
+
+const (
+	SmartSrv = iota
+	NormalSrv
 )
 
 type Server struct {
+	// SmartSrv or NormalSrv
+	Mode int
 	// config file
 	Cfg *Config
 	// direct fetcher
@@ -21,13 +29,14 @@ type Server struct {
 }
 
 // Create and intialize
-func NewServer(c *Config) (self *Server, err error) {
+func NewServer(mode int, c *Config) (self *Server, err error) {
 	ssh, err := NewSSH(c)
 	if err != nil {
 		return
 	}
 
 	self = &Server{
+		Mode:         mode,
 		Cfg:          c,
 		Direct:       NewDirect(),
 		SSH:          ssh,
@@ -88,11 +97,11 @@ func (self *Server) Blocked(host string) bool {
 //    to the remote server and copy the reponse to client.
 //
 func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	blocked := self.Blocked(r.URL.Host)
-	L.Printf("[%v] %s %s %s\n", blocked, r.Method, r.RequestURI, r.Proto)
+	use := self.Blocked(r.URL.Host) || self.Mode == NormalSrv
+	L.Printf("[%v] %s %s %s\n", use, r.Method, r.RequestURI, r.Proto)
 
 	if r.Method == "CONNECT" {
-		if blocked {
+		if use {
 			self.SSH.Connect(w, r)
 		} else {
 			self.Direct.Connect(w, r)
@@ -113,7 +122,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		//   options that are desired for that particular connection and MUST NOT
 		//   be communicated by proxies over further connections.
 		r.Header.Del("Connection")
-		if blocked {
+		if use {
 			self.SSH.ServeHTTP(w, r)
 		} else {
 			self.Direct.ServeHTTP(w, r)

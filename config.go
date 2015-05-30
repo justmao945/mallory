@@ -2,12 +2,13 @@ package mallory
 
 import (
 	"encoding/json"
-	"gopkg.in/fsnotify.v1"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
 	"sync"
+
+	"gopkg.in/fsnotify.v1"
 )
 
 // Memory representation for mallory.json
@@ -15,7 +16,9 @@ type ConfigFile struct {
 	// private file file
 	PrivateKey string `json:"id_rsa"`
 	// local addr to listen and serve, default is 127.0.0.1:1315
-	LocalServer string `json:"local"`
+	LocalSmartServer string `json:"local_smart"`
+	// local addr to listen and serve, default is 127.0.0.1:1316
+	LocalNormalServer string `json:"local_normal"`
 	// remote addr to connect, e.g. ssh://user@linode.my:22
 	RemoteServer string `json:"remote"`
 	// blocked host list
