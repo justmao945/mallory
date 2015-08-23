@@ -1,5 +1,5 @@
 ## mallory
-Simple HTTP/HTTPS proxy uses SSH.
+HTTP/HTTPS proxy over SSH.
 
 
 ## Installation
