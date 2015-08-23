@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"sync"
+	"syscall"
 
 	"gopkg.in/fsnotify.v1"
 )
@@ -75,6 +77,19 @@ func NewConfig(path string) (self *Config, err error) {
 	return
 }
 
+func (self *Config) Reload() (err error) {
+	file, err := NewConfigFile(self.Path)
+	if err != nil {
+		L.Printf("Reload %s failed: %s\n", self.Path, err)
+	} else {
+		L.Printf("Reload %s\n", self.Path)
+		self.mutex.Lock()
+		self.File = file
+		self.mutex.Unlock()
+	}
+	return
+}
+
 // reload config file
 func (self *Config) Load() (err error) {
 	if self.loaded {
@@ -102,18 +117,20 @@ func (self *Config) Load() (err error) {
 			select {
 			case event := <-self.Watcher.Events:
 				if event.Op&fsnotify.Write == fsnotify.Write && event.Name == self.Path {
-					file, err := NewConfigFile(self.Path)
-					if err != nil {
-						L.Printf("Reload %s failed: %s\n", self.Path, err)
-					} else {
-						L.Printf("Reload %s\n", self.Path)
-						self.mutex.Lock()
-						self.File = file
-						self.mutex.Unlock()
-					}
+					self.Reload()
 				}
 			case err := <-self.Watcher.Errors:
 				L.Printf("Watching failed: %s\n", err)
+			}
+		}
+	}()
+
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGUSR2)
+	go func() {
+		for s := range sc {
+			if s == syscall.SIGUSR2 {
+				self.Reload()
 			}
 		}
 	}()

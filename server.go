@@ -127,7 +127,20 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			self.Direct.ServeHTTP(w, r)
 		}
+	} else if r.URL.Path == "/reload" {
+		self.reload(w, r)
 	} else {
 		L.Printf("%s is not a full URL path\n", r.RequestURI)
+	}
+}
+
+func (self *Server) reload(w http.ResponseWriter, r *http.Request) {
+	err := self.Cfg.Reload()
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(self.Cfg.Path + ": " + err.Error()))
+	} else {
+		w.WriteHeader(200)
+		w.Write([]byte(self.Cfg.Path + " reloaded"))
 	}
 }
