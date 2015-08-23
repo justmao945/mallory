@@ -42,20 +42,34 @@ Content:
 }
 ```
 
-Config will be reloaded when updated automatiacally, but you can reload manually when it doesn't work:
+Blocked list in config file will be reloaded automatically when updated, and you can do it manually:
 ```
-# send signal
+# send signal to reload
 kill -USR2 <pid of mallory>
 
-# or reload command by sending http request
+# or use reload command by sending http request
 mallory -reload
 ```
 
-
 ### System config
-* Set both HTTP and HTTPS proxy to `localhost` with port `1315` to use the block list
-* Set env var `http_proxy` and `https_proxy` to `localhost:1316` if is in terminal
+* Set both HTTP and HTTPS proxy to `localhost` with port `1315` to use with block list
+* Set env var `http_proxy` and `https_proxy` to `localhost:1316` for terminal usage
 
+### Get the right suffix name for a domain
+```
+mallory -suffix www.google.com
+```
+
+### A simple command to forward all traffic for the given port
+```sh
+# install it: go get github.com/justmao945/mallory/cmd/forward
+
+# all traffic through port 20022 will be forwarded to destination.com:22
+forward -network tcp -listen :20022 -forward destination.com:22
+
+# you can ssh to destination:22 through localhost:20022
+ssh root@localhost -p 20022
+```
 
 ### TODO
 * return http error when unable to dial
