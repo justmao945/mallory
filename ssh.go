@@ -2,13 +2,14 @@ package mallory
 
 import (
 	"errors"
-	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 	"os/user"
 	"sync"
+
+	"golang.org/x/crypto/ssh"
 )
 
 //
@@ -85,48 +86,32 @@ func NewSSH(c *Config) (self *SSH, err error) {
 		return
 	}
 
+	// first time to dial to remote server, make sure it is available
 	self.Client, err = ssh.Dial("tcp", self.URL.Host, self.CliCfg)
 	if err != nil {
 		return
 	}
 
 	dial := func(network, addr string) (c net.Conn, err error) {
-		// FIXME: unexported net.errClosing
-		errClosing := errors.New("use of closed network connection")
-
-		for i := 0; i < 3; i++ {
-			if err != nil {
-				// stop when ssh.Dial failed
-				break
-			}
-			// need read lock, we'll reconnect Cli if is disconnected
-			// use read write lock may slow down connection ?
+		for i := 0; i < 8; i++ {
 			self.mutex.RLock()
 			saveClient := self.Client
-			if self.Client != nil {
+			if self.Client != nil && err == nil {
 				c, err = self.Client.Dial(network, addr)
-			} else {
-				// The reason why both Cli and err are nil is that, the previous round
-				// connection is failed, which keeps self.Cli nil.
-				err = errClosing
 			}
 			self.mutex.RUnlock()
-
-			// We want to reconnect the network when disconnected.
-			if err != nil && err.Error() == errClosing.Error() {
-				// we may change the Cli, need write lock
-				self.mutex.Lock()
-				if saveClient == self.Client {
-					if self.Client != nil {
-						self.Client.Close()
-					}
-					self.Client, err = ssh.Dial("tcp", self.URL.Host, self.CliCfg)
-				}
-				self.mutex.Unlock()
-				continue
+			if self.Client != nil && err == nil {
+				break // success
 			}
-			// do not reconnect when no error or other errors
-			break
+			self.mutex.Lock()
+			if saveClient == self.Client { // the thread to reconnect
+				if self.Client != nil {
+					self.Client.Close()
+				}
+				L.Printf("reconnecting %s...\n", self.URL.Host)
+				self.Client, err = ssh.Dial("tcp", self.URL.Host, self.CliCfg)
+			}
+			self.mutex.Unlock()
 		}
 		return
 	}
