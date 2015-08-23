@@ -42,6 +42,16 @@ Content:
 }
 ```
 
+Config will be reloaded when updated automatiacally, but you can reload manually when it doesn't work:
+```
+# send signal
+kill -USR2 <pid of mallory>
+
+# or reload command by sending http request
+mallory -reload
+```
+
+
 ### System config
 * Set both HTTP and HTTPS proxy to `localhost` with port `1315` to use the block list
 * Set env var `http_proxy` and `https_proxy` to `localhost:1316` if is in terminal
@@ -50,3 +60,4 @@ Content:
 ### TODO
 * return http error when unable to dial
 * add host to list automatically when unable to dial
+* support multiple remote servers
