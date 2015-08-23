@@ -20,6 +20,8 @@ var (
 
 func serve() {
 	L.Printf("Starting...\n")
+	L.Printf("PID: %d\n", os.Getpid())
+
 	c, err := NewConfig(*FConfig)
 	if err != nil {
 		L.Fatalln(err)
@@ -68,7 +70,11 @@ func reload() {
 		L.Fatal(err)
 	}
 	defer res.Body.Close()
-	fmt.Println(ioutil.ReadAll(res.Body))
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		L.Fatal(err)
+	}
+	fmt.Printf("%s\n", body)
 }
 
 func main() {

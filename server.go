@@ -13,6 +13,16 @@ const (
 	NormalSrv
 )
 
+type AccessType bool
+
+func (t AccessType) String() string {
+	if t {
+		return "PROXY"
+	} else {
+		return "DIRECT"
+	}
+}
+
 type Server struct {
 	// SmartSrv or NormalSrv
 	Mode int
@@ -97,8 +107,8 @@ func (self *Server) Blocked(host string) bool {
 //    to the remote server and copy the reponse to client.
 //
 func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	use := self.Blocked(r.URL.Host) || self.Mode == NormalSrv
-	L.Printf("[%v] %s %s %s\n", use, r.Method, r.RequestURI, r.Proto)
+	use := (self.Blocked(r.URL.Host) || self.Mode == NormalSrv) && r.URL.IsAbs()
+	L.Printf("[%s] %s %s %s\n", AccessType(use), r.Method, r.RequestURI, r.Proto)
 
 	if r.Method == "CONNECT" {
 		if use {
