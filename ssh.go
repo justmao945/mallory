@@ -25,7 +25,11 @@ type SSH struct {
 	// direct fetcher
 	Direct *Direct
 	// atomic Dial
-	mutex sync.RWMutex
+	dialMutex sync.RWMutex
+	// dialed conns
+	conns []net.Conn
+	// connsMutex
+	connsMutex sync.RWMutex
 }
 
 // Create and initialize
@@ -94,24 +98,43 @@ func NewSSH(c *Config) (self *SSH, err error) {
 
 	dial := func(network, addr string) (c net.Conn, err error) {
 		for i := 0; i < 8; i++ {
-			self.mutex.RLock()
+			self.dialMutex.RLock()
 			saveClient := self.Client
 			if self.Client != nil && err == nil {
 				c, err = self.Client.Dial(network, addr)
 			}
-			self.mutex.RUnlock()
+			self.dialMutex.RUnlock()
+
 			if self.Client != nil && err == nil {
+				self.connsMutex.Lock()
+				self.conns = append(self.conns, c)
+				self.connsMutex.Unlock()
 				break // success
 			}
-			self.mutex.Lock()
+
+			self.dialMutex.Lock()
 			if saveClient == self.Client { // the thread to reconnect
 				if self.Client != nil {
 					self.Client.Close()
 				}
-				L.Printf("reconnecting %s...\n", self.URL.Host)
+
+				self.connsMutex.RLock()
+				for _, d := range self.conns {
+					err1 := d.Close()
+					if err1 != nil {
+						L.Println(err1)
+					}
+				}
+				self.connsMutex.RUnlock()
+
+				self.connsMutex.Lock()
+				self.conns = self.conns[:0]
+				self.connsMutex.Unlock()
+
+				L.Printf("reconnecting %s: %s\n", self.URL.Host, err)
 				self.Client, err = ssh.Dial("tcp", self.URL.Host, self.CliCfg)
 			}
-			self.mutex.Unlock()
+			self.dialMutex.Unlock()
 		}
 		return
 	}
