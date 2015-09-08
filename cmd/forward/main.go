@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 )
 
 var (
@@ -32,6 +33,12 @@ func main() {
 			continue
 		}
 		L.Printf("%d: new %s\n", id, conn.RemoteAddr())
+
+		if tcpConn := conn.(*net.TCPConn); tcpConn != nil {
+			L.Printf("%d: setup keepalive for TCP connection\n", id)
+			tcpConn.SetKeepAlive(true)
+			tcpConn.SetKeepAlivePeriod(30 * time.Second)
+		}
 
 		go func(myid int) {
 			defer conn.Close()
@@ -61,6 +68,7 @@ func main() {
 			}()
 			<-wait
 			<-wait
+			L.Printf("%d: connection closed\n", myid)
 		}(id)
 	}
 }
