@@ -40,7 +40,7 @@ func main() {
 			tcpConn.SetKeepAlivePeriod(30 * time.Second)
 		}
 
-		go func(myid int) {
+		go func(myid int, conn net.Conn) {
 			defer conn.Close()
 			c, err := net.Dial(*FNetwork, *FForward)
 			if err != nil {
@@ -69,6 +69,6 @@ func main() {
 			<-wait
 			<-wait
 			L.Printf("%d: connection closed\n", myid)
-		}(id)
+		}(id, conn)
 	}
 }
