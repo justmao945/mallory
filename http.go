@@ -34,3 +34,26 @@ func CopyHeader(w http.ResponseWriter, r *http.Response) {
 func StatusText(c int) string {
 	return fmt.Sprintf("%d %s", c, http.StatusText(c))
 }
+
+// Hop-by-hop headers. These are removed when sent to the backend.
+// http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
+var hopHeaders = []string{
+	// If no Accept-Encoding header exists, Transport will add the headers it can accept
+	// and would wrap the response body with the relevant reader.
+	"Accept-Encoding",
+	"Connection",
+	"Keep-Alive",
+	"Proxy-Authenticate",
+	"Proxy-Authorization",
+	"Te", // canonicalized version of "TE"
+	"Trailers",
+	"Transfer-Encoding",
+	"Upgrade",
+	"Proxy-Connection", // added by CURL  http://homepage.ntlworld.com/jonathan.deboynepollard/FGA/web-proxy-connection-header.html
+}
+
+func RemoveHopHeaders(h http.Header) {
+	for _, k := range hopHeaders {
+		h.Del(k)
+	}
+}
