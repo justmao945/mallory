@@ -7,8 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os/user"
-	"sync/atomic"
-	"unsafe"
+	"sync"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -27,6 +26,7 @@ type SSH struct {
 	Direct *Direct
 	// only re-dial once
 	sf Group
+	l  sync.RWMutex
 }
 
 // Create and initialize
@@ -94,23 +94,31 @@ func NewSSH(c *Config) (self *SSH, err error) {
 	}
 
 	dial := func(network, addr string) (c net.Conn, err error) {
-		cli0 := (*ssh.Client)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&self.Client))))
-		if cli0 != nil {
-			c, err = cli0.Dial(network, addr)
-			if err == nil {
-				return
-			}
-			L.Printf("dial failed: %s\n", err)
+		self.l.RLock()
+		cli := self.Client
+		self.l.RUnlock()
+
+		c, err = cli.Dial(network, addr)
+		if err == nil {
+			return
 		}
-		L.Printf("reconnecting %s...\n", self.URL.Host)
-		cli, err := self.sf.Do(network+addr, func() (interface{}, error) {
+
+		L.Printf("dial %s failed: %s, reconnecting ssh server %s...\n", addr, err, self.URL.Host)
+
+		clif, err := self.sf.Do(network+addr, func() (interface{}, error) {
 			return ssh.Dial("tcp", self.URL.Host, self.CliCfg)
 		})
 		if err != nil {
+			L.Printf("connect ssh server %s failed: %s\n", self.URL.Host, err)
 			return
 		}
-		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&self.Client)), unsafe.Pointer(cli.(*ssh.Client)))
-		return
+		cli = clif.(*ssh.Client)
+
+		self.l.Lock()
+		self.Client = cli
+		self.l.Unlock()
+
+		return cli.Dial(network, addr)
 	}
 
 	self.Direct = &Direct{
