@@ -2,6 +2,7 @@ package mallory
 
 import (
 	"io"
+	"net"
 	"net/http"
 	"time"
 )
@@ -13,7 +14,11 @@ type Direct struct {
 
 // Create and initialize
 func NewDirect() *Direct {
-	return &Direct{Tr: http.DefaultTransport.(*http.Transport)}
+	tr := http.DefaultTransport.(*http.Transport)
+	if tr.Dial == nil {
+		tr.Dial = net.Dial
+	}
+	return &Direct{Tr: tr}
 }
 
 // Data flow:
