@@ -126,10 +126,10 @@ func (self *Config) Load() (err error) {
 	}()
 
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGUSR2)
+	signal.Notify(sc, syscall.SIGHUP)
 	go func() {
 		for s := range sc {
-			if s == syscall.SIGUSR2 {
+			if s == syscall.SIGHUP {
 				self.Reload()
 			}
 		}
