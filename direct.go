@@ -1,10 +1,15 @@
 package mallory
 
 import (
+	"errors"
 	"io"
 	"net"
 	"net/http"
 	"time"
+)
+
+var (
+	ErrShouldProxy = errors.New("should proxy")
 )
 
 // Direct fetcher
@@ -13,11 +18,14 @@ type Direct struct {
 }
 
 // Create and initialize
-func NewDirect() *Direct {
-	tr := http.DefaultTransport.(*http.Transport)
-	if tr.Dial == nil {
-		tr.Dial = net.Dial
+func NewDirect(shouldProxyTimeout time.Duration) *Direct {
+	if shouldProxyTimeout == 0 {
+		shouldProxyTimeout = 200 * time.Millisecond
 	}
+	tr := http.DefaultTransport.(*http.Transport)
+	tr.Dial = (&net.Dialer{
+		Timeout: shouldProxyTimeout,
+	}).Dial
 	return &Direct{Tr: tr}
 }
 
@@ -26,7 +34,7 @@ func NewDirect() *Direct {
 //  2. Re-post request R1 to remote server(the one client want to connect)
 //  3. Receive response P1 from remote server
 //  4. Send response P1 to client
-func (self *Direct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (self *Direct) ServeHTTP(w http.ResponseWriter, r *http.Request) (err error) {
 	if r.Method == "CONNECT" {
 		L.Println("this function can not handle CONNECT method")
 		http.Error(w, r.Method, http.StatusMethodNotAllowed)
@@ -39,6 +47,11 @@ func (self *Direct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// The underlying RoundTrip never changes anything of the request.
 	resp, err := self.Tr.RoundTrip(r)
 	if err != nil {
+		if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+			L.Printf("RoundTrip: %s, reproxy...\n", err.Error())
+			err = ErrShouldProxy
+			return
+		}
 		L.Printf("RoundTrip: %s\n", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -59,6 +72,7 @@ func (self *Direct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	d := BeautifyDuration(time.Since(start))
 	ndtos := BeautifySize(n)
 	L.Printf("RESPONSE %s %s in %s <-%s\n", r.URL.Host, resp.Status, d, ndtos)
+	return
 }
 
 // Data flow:
@@ -66,7 +80,7 @@ func (self *Direct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //  2. Dial the remote server(the one client want to conenct)
 //  3. Send 200 OK to client if the connection is established
 //  4. Exchange data between client and server
-func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) {
+func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) (err error) {
 	if r.Method != "CONNECT" {
 		L.Println("this function can only handle CONNECT method")
 		http.Error(w, r.Method, http.StatusMethodNotAllowed)
@@ -83,6 +97,20 @@ func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// connect the remote client directly
+	dst, err := self.Tr.Dial("tcp", r.URL.Host)
+	if err != nil {
+		if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+			L.Printf("RoundTrip: %s, reproxy...\n", err.Error())
+			err = ErrShouldProxy
+			return
+		}
+		L.Printf("Dial: %s\n", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
 	src, _, err := hij.Hijack()
 	if err != nil {
 		L.Printf("Hijack: %s\n", err.Error())
@@ -90,15 +118,6 @@ func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer src.Close()
-
-	// connect the remote client directly
-	dst, err := self.Tr.Dial("tcp", r.URL.Host)
-	if err != nil {
-		L.Printf("Dial: %s\n", err.Error())
-		src.Write([]byte("HTTP/1.1 500 Internal Server Error\r\n\r\n"))
-		return
-	}
-	defer dst.Close()
 
 	// Once connected successfully, return OK
 	src.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
@@ -128,4 +147,5 @@ func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) {
 	nstod, ndtos := BeautifySize(<-stod), BeautifySize(<-dtos)
 	d := BeautifyDuration(time.Since(start))
 	L.Printf("CLOSE %s after %s ->%s <-%s\n", r.URL.Host, d, nstod, ndtos)
+	return
 }

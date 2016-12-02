@@ -4,6 +4,7 @@ package mallory
 import (
 	"net/http"
 	"sync"
+	"time"
 
 	"golang.org/x/net/publicsuffix"
 )
@@ -45,10 +46,12 @@ func NewServer(mode int, c *Config) (self *Server, err error) {
 		return
 	}
 
+	shouldProxyTimeout := time.Millisecond * time.Duration(c.File.ShouldProxyTimeoutMS)
+
 	self = &Server{
 		Mode:         mode,
 		Cfg:          c,
-		Direct:       NewDirect(),
+		Direct:       NewDirect(shouldProxyTimeout),
 		SSH:          ssh,
 		BlockedHosts: make(map[string]bool),
 	}
@@ -114,7 +117,10 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if use {
 			self.SSH.Connect(w, r)
 		} else {
-			self.Direct.Connect(w, r)
+			err := self.Direct.Connect(w, r)
+			if err == ErrShouldProxy {
+				self.SSH.Connect(w, r)
+			}
 		}
 	} else if r.URL.IsAbs() {
 		// This is an error if is not empty on Client
@@ -123,7 +129,10 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if use {
 			self.SSH.ServeHTTP(w, r)
 		} else {
-			self.Direct.ServeHTTP(w, r)
+			err := self.Direct.ServeHTTP(w, r)
+			if err == ErrShouldProxy {
+				self.SSH.ServeHTTP(w, r)
+			}
 		}
 	} else if r.URL.Path == "/reload" {
 		self.reload(w, r)
