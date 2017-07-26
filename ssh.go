@@ -52,6 +52,10 @@ func NewSSH(c *Config) (self *SSH, err error) {
 		self.CliCfg.User = u.Username
 	}
 
+	self.CliCfg.HostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		return nil
+	}
+
 	// 1) try RSA keyring first
 	for {
 		id_rsa := c.File.PrivateKey
