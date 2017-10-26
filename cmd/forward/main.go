@@ -56,7 +56,7 @@ func main() {
 					L.Printf("%d: %s\n", myid, err)
 				}
 				L.Printf("%d: %s -> %s %d bytes\n", myid, conn.RemoteAddr(), c.RemoteAddr(), n)
-				wait <- 1
+				close(wait)
 			}()
 			go func() {
 				n, err := io.Copy(conn, c)
@@ -64,9 +64,8 @@ func main() {
 					L.Printf("%d: %s\n", myid, err)
 				}
 				L.Printf("%d: %s -> %s %d bytes\n", myid, c.RemoteAddr(), conn.RemoteAddr(), n)
-				wait <- 1
+				close(wait)
 			}()
-			<-wait
 			<-wait
 			L.Printf("%d: connection closed\n", myid)
 		}(id, conn)
