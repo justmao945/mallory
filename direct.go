@@ -12,6 +12,10 @@ var (
 	ErrShouldProxy = errors.New("should proxy")
 )
 
+type closeWriter interface {
+	CloseWrite() error
+}
+
 // Direct fetcher
 type Direct struct {
 	Tr *http.Transport
@@ -130,7 +134,9 @@ func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) (err error) 
 			L.Printf("Copy: %s\n", err.Error())
 			// FIXME: how to report error to dst ?
 		}
-		dst.Close()
+		if tcpConn, ok := dst.(closeWriter); ok {
+			tcpConn.CloseWrite()
+		}
 		c <- n
 	}
 
