@@ -148,11 +148,17 @@ func (self *Direct) Connect(w http.ResponseWriter, r *http.Request) (err error) 
 	dtos := make(chan int64)
 	go copyAndWait(src, dst, dtos)
 
-	// Generally, the remote server would keep the connection alive,
-	// so we will not close the connection until both connection recv
-	// EOF and are done!
-	nstod, ndtos := BeautifySize(<-stod), BeautifySize(<-dtos)
+	var nstod, ndtos int64
+	for i := 0; i < 2; {
+		select {
+		case nstod = <-stod:
+			i++
+		case ndtos = <-dtos:
+			i++
+		}
+	}
 	d := BeautifyDuration(time.Since(start))
-	L.Printf("CLOSE %s after %s ->%s <-%s\n", r.URL.Host, d, nstod, ndtos)
+	L.Printf("CLOSE %s after %s ->%s <-%s\n",
+		r.URL.Host, d, BeautifySize(nstod), BeautifySize(ndtos))
 	return
 }
