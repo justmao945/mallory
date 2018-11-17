@@ -6,10 +6,12 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"os/user"
 	"sync"
 
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 )
 
 //
@@ -83,6 +85,12 @@ func NewSSH(c *Config) (self *SSH, err error) {
 		}
 		// stop here!!
 		break
+	}
+
+	// 3) try ssh agent
+	if sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
+		agentAuth := ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers)
+		self.CliCfg.Auth = append(self.CliCfg.Auth, agentAuth)
 	}
 
 	if len(self.CliCfg.Auth) == 0 {
