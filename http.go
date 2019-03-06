@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-// return host if has port in addr, or addr if missing port
+// HostOnly returns host if has port in addr, or addr if missing port
 func HostOnly(addr string) string {
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -30,7 +30,7 @@ func CopyHeader(w http.ResponseWriter, r *http.Response) {
 	}
 }
 
-// Return http status text looks like "200 OK"
+// StatusText returns http status text looks like "200 OK"
 func StatusText(c int) string {
 	return fmt.Sprintf("%d %s", c, http.StatusText(c))
 }
