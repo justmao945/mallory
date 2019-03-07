@@ -86,7 +86,7 @@ func (self *Server) Blocked(host string) bool {
 	return blocked
 }
 
-// HTTP proxy accepts requests with following two types:
+// ServeHTTP proxy accepts requests with following two types:
 //  - CONNECT
 //    Generally, this method is used when the client want to connect server with HTTPS.
 //    In fact, the client can do anything he want in this CONNECT way...
