@@ -99,3 +99,15 @@ mallory: 2020/03/30 16:51:10 main.go:30: Connecting remote SSH server: ssh://bhe
 mallory: 2020/03/30 16:51:10 main.go:38: Local normal HTTP proxy: :1316
 mallory: 2020/03/30 16:51:10 main.go:48: Local smart HTTP proxy: :1315
 ```
+
+My use case was to connect to a Kubernetes cluster (Openshift) installed behind an SSH bastion:
+
+```
+$ export http_proxy=http://localhost:1316
+$ export https_proxy=https://localhost:1316
+$ oc login https://master.mycluster.zoobab.com:8443
+Authentication required for https://master.mycluster.zoobab.com:8443 (openshift)
+Username: bhenrion
+Password:
+Login successful.
+```
