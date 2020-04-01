@@ -1,13 +1,11 @@
 ## mallory
 HTTP/HTTPS proxy over SSH.
 
-
 ## Installation
 * Local machine: `go get github.com/justmao945/mallory/cmd/mallory`
 * Remote server: need our old friend sshd
 
-
-## Configueration
+## Configuration
 ### Config file
 Default path is `$HOME/.config/mallory.json`, can be set when start program
 ```
@@ -75,3 +73,41 @@ ssh root@localhost -p 20022
 * return http error when unable to dial
 * add host to list automatically when unable to dial
 * support multiple remote servers
+
+### Docker container
+
+Considering the following config file:
+
+```
+$ cat mallory.json
+{
+  "id_rsa": "/tmp/id_rsa",
+  "local_smart": ":1315",
+  "local_normal": ":1316",
+  "remote": "ssh://bhenrion@10.151.0.11:22"
+}
+```
+
+You can run the container (`zoobab/mallory`) my mounting the config file, the SSH key, and mapping the 2 ports:
+
+```
+$ docker run -v $PWD/mallory.json:/root/.config/mallory.json -p 1316:1316 -p 1315:1315 -v $PWD/.ssh/id_rsa:/tmp/id_rsa zoobab/mallory
+mallory: 2020/03/30 16:51:10 main.go:22: Starting...
+mallory: 2020/03/30 16:51:10 main.go:23: PID: 1
+mallory: 2020/03/30 16:51:10 config.go:103: Loading: /root/.config/mallory.json
+mallory: 2020/03/30 16:51:10 main.go:30: Connecting remote SSH server: ssh://bhenrion@10.151.0.11:22
+mallory: 2020/03/30 16:51:10 main.go:38: Local normal HTTP proxy: :1316
+mallory: 2020/03/30 16:51:10 main.go:48: Local smart HTTP proxy: :1315
+```
+
+My use case was to connect to a Kubernetes cluster (Openshift) installed behind an SSH bastion:
+
+```
+$ export http_proxy=http://localhost:1316
+$ export https_proxy=https://localhost:1316
+$ oc login https://master.mycluster.zoobab.com:8443
+Authentication required for https://master.mycluster.zoobab.com:8443 (openshift)
+Username: bhenrion
+Password:
+Login successful.
+```
