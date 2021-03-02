@@ -1,0 +1,15 @@
+[Unit]
+Description=HTTP/HTTPS proxy over SSH
+After=network.target
+
+
+[Service]
+Type=simple
+User=mallory
+Group=mallory
+ExecStart=/usr/local/bin/mallory -config /etc/mallory/mallory.json
+ExecReload=/usr/local/bin/mallory -reload
+Restart=always
+
+[Install]
+WantedBy=default.target
