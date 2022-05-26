@@ -2,6 +2,7 @@
 *.o
 *.a
 *.so
+cmd/mallory/mallory
 
 # Folders
 _obj
