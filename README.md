@@ -2,7 +2,7 @@
 HTTP/HTTPS proxy over SSH.
 
 ## Installation
-* Local machine: `go get github.com/justmao945/mallory/cmd/mallory`
+* Local machine: `go install github.com/justmao945/mallory/cmd/mallory@latest`
 * Remote server: need our old friend sshd
 
 ## Configuration
