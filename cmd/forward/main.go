@@ -17,6 +17,14 @@ var (
 	FForward = flag.String("forward", ":80", "destination address and port")
 )
 
+func isChanClose(ch chan int) bool {
+	select {
+	case _, received := <-ch:
+		return !received
+	default:
+	}
+	return false
+}
 func main() {
 	flag.Parse()
 
@@ -56,7 +64,9 @@ func main() {
 					L.Printf("%d: %s\n", myid, err)
 				}
 				L.Printf("%d: %s -> %s %d bytes\n", myid, conn.RemoteAddr(), c.RemoteAddr(), n)
-				close(wait)
+				if !isChanClose(wait) {
+					close(wait)
+				}
 			}()
 			go func() {
 				n, err := io.Copy(conn, c)
@@ -64,7 +74,10 @@ func main() {
 					L.Printf("%d: %s\n", myid, err)
 				}
 				L.Printf("%d: %s -> %s %d bytes\n", myid, c.RemoteAddr(), conn.RemoteAddr(), n)
-				close(wait)
+				if !isChanClose(wait) {
+					close(wait)
+				}
+
 			}()
 			<-wait
 			L.Printf("%d: connection closed\n", myid)
